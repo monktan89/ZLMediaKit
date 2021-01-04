@@ -67,7 +67,7 @@ static void responseApi(const Json::Value &res, const HttpSession::HttpResponseI
     GET_CONFIG(string, charSet, Http::kCharSet);
     HttpSession::KeyValue headerOut;
     headerOut["Content-Type"] = string("application/json; charset=") + charSet;
-    invoker("200 OK", headerOut, res.toStyledString());
+    invoker(200, headerOut, res.toStyledString());
 };
 
 static void responseApi(int code, const string &msg, const HttpSession::HttpResponseInvoker &invoker){
@@ -97,7 +97,7 @@ static HttpApi toApi(const function<void(API_ARGS_MAP_ASYNC)> &cb) {
 static HttpApi toApi(const function<void(API_ARGS_MAP)> &cb) {
     return toApi([cb](API_ARGS_MAP_ASYNC) {
         cb(API_ARGS_VALUE);
-        invoker("200 OK", headerOut, val.toStyledString());
+        invoker(200, headerOut, val.toStyledString());
     });
 }
 
@@ -125,7 +125,7 @@ static HttpApi toApi(const function<void(API_ARGS_JSON_ASYNC)> &cb) {
 static HttpApi toApi(const function<void(API_ARGS_JSON)> &cb) {
     return toApi([cb](API_ARGS_JSON_ASYNC) {
         cb(API_ARGS_VALUE);
-        invoker("200 OK", headerOut, val.toStyledString());
+        invoker(200, headerOut, val.toStyledString());
     });
 }
 
@@ -187,7 +187,7 @@ static inline void addHttpListener(){
         consumed = true;
 
         if(api_debug){
-            auto newInvoker = [invoker, parser](const string &codeOut,
+            auto newInvoker = [invoker, parser](int code,
                                                 const HttpSession::KeyValue &headerOut,
                                                 const HttpBody::Ptr &body) {
 
@@ -204,13 +204,13 @@ static inline void addHttpListener(){
                            << "# content:\r\n" << parser.Content() << "\r\n"
                            << "# response:\r\n"
                            << contentOut << "\r\n";
-                    invoker(codeOut, headerOut, contentOut);
+                    invoker(code, headerOut, contentOut);
                 } else {
                     DebugL << "\r\n# request:\r\n" << parser.Method() << " " << parser.FullUrl() << "\r\n"
                            << "# content:\r\n" << parser.Content() << "\r\n"
                            << "# response size:"
                            << size << "\r\n";
-                    invoker(codeOut, headerOut, body);
+                    invoker(code, headerOut, body);
                 }
             };
             ((HttpSession::HttpResponseInvoker &) invoker) = newInvoker;
@@ -277,7 +277,7 @@ void installWebApi() {
                 val["data"].append(obj);
             }
             val["code"] = API::Success;
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -295,7 +295,7 @@ void installWebApi() {
                 val["data"].append(obj);
             }
             val["code"] = API::Success;
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -441,13 +441,16 @@ void installWebApi() {
         CHECK_SECRET();
         //获取所有MediaSource列表
         MediaSource::for_each_media([&](const MediaSource::Ptr &media){
-            if(!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()){
+            if (!allArgs["schema"].empty() && allArgs["schema"] != media->getSchema()) {
                 return;
             }
-            if(!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()){
+            if (!allArgs["vhost"].empty() && allArgs["vhost"] != media->getVhost()) {
                 return;
             }
-            if(!allArgs["app"].empty() && allArgs["app"] != media->getApp()){
+            if (!allArgs["app"].empty() && allArgs["app"] != media->getApp()) {
+                return;
+            }
+            if (!allArgs["stream"].empty() && allArgs["stream"] != media->getId()) {
                 return;
             }
             val["data"].append(makeMediaSourceJson(media));
@@ -670,7 +673,7 @@ void installWebApi() {
             InfoL << "addStreamPusherProxy， canont find source stream!";
             const_cast<Value &>(val)["code"] = API::OtherFailed;
             const_cast<Value &>(val)["msg"] = "can not find the source stream";
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
             return;
         }
 
@@ -692,7 +695,7 @@ void installWebApi() {
                                      const_cast<Value &>(val)["data"]["key"] = key;
                                      InfoL << "Publish success,Please play with player:" << pushUrl;
                                  }
-                                 invoker("200 OK", headerOut, val.toStyledString());
+                                 invoker(200, headerOut, val.toStyledString());
                              });
 
     });
@@ -783,7 +786,7 @@ void installWebApi() {
                            }else{
                                const_cast<Value &>(val)["data"]["key"] = key;
                            }
-                           invoker("200 OK", headerOut, val.toStyledString());
+                           invoker(200, headerOut, val.toStyledString());
                        });
     });
 
@@ -846,7 +849,7 @@ void installWebApi() {
             } else {
                 const_cast<Value &>(val)["data"]["key"] = key;
             }
-            invoker("200 OK", headerOut, val.toStyledString());
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -960,12 +963,13 @@ void installWebApi() {
         }
 
         //src_port为空时，则随机本地端口
-        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](const SockException &ex){
+        src->startSendRtp(allArgs["dst_url"], allArgs["dst_port"], allArgs["ssrc"], allArgs["is_udp"], allArgs["src_port"], [val, headerOut, invoker](uint16_t local_port, const SockException &ex){
             if (ex) {
                 const_cast<Value &>(val)["code"] = API::OtherFailed;
                 const_cast<Value &>(val)["msg"] = ex.what();
             }
-            invoker("200 OK", headerOut, val.toStyledString());
+            const_cast<Value &>(val)["local_port"] = local_port;
+            invoker(200, headerOut, val.toStyledString());
         });
     });
 
@@ -1239,7 +1243,7 @@ void installWebApi() {
                             }else{
                                 const_cast<Value &>(val)["data"]["key"] = key;
                             }
-                            invoker("200 OK", headerOut, val.toStyledString());
+                            invoker(200, headerOut, val.toStyledString());
                         });
     });
 #endif//!defined(_WIN32)
@@ -1264,7 +1268,7 @@ void installWebApi() {
                            }else{
                                const_cast<Value &>(val)["data"]["key"] = key;
                            }
-                           invoker("200 OK", headerOut, val.toStyledString());
+                           invoker(200, headerOut, val.toStyledString());
                        });
     });
 

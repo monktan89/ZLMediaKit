@@ -118,7 +118,7 @@ API_EXPORT int API_CALL mk_media_source_seek_to(const mk_media_source ctx,uint32
 /**
  * rtp推流成功与否的回调(第一次成功后，后面将一直重试)
  */
-typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, int err, const char *msg);
+typedef void(API_CALL *on_mk_media_source_send_rtp_result)(void *user_data, uint16_t local_port, int err, const char *msg);
 
 //MediaSource::startSendRtp,请参考mk_media_start_send_rtp,注意ctx参数类型不一样
 API_EXPORT void API_CALL mk_media_source_start_send_rtp(const mk_media_source ctx, const char *dst_url, uint16_t dst_port, const char *ssrc, int is_udp, on_mk_media_source_send_rtp_result cb, void *user_data);
@@ -169,23 +169,23 @@ typedef void* mk_http_response_invoker;
 
 /**
  * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const HttpBody::Ptr &body);
- * @param response_code 譬如200 OK
+ * @param response_code 譬如200
  * @param response_header 返回的http头，譬如 {"Content-Type","text/html",NULL} 必须以NULL结尾
  * @param response_body body对象
  */
 API_EXPORT void API_CALL mk_http_response_invoker_do(const mk_http_response_invoker ctx,
-                                                     const char *response_code,
+                                                     int response_code,
                                                      const char **response_header,
                                                      const mk_http_body response_body);
 
 /**
  * HttpSession::HttpResponseInvoker(const string &codeOut, const StrCaseMap &headerOut, const string &body);
- * @param response_code 譬如200 OK
+ * @param response_code 譬如200
  * @param response_header 返回的http头，譬如 {"Content-Type","text/html",NULL} 必须以NULL结尾
  * @param response_content 返回的content部分，譬如一个网页内容
  */
 API_EXPORT void API_CALL mk_http_response_invoker_do_string(const mk_http_response_invoker ctx,
-                                                            const char *response_code,
+                                                            int response_code,
                                                             const char **response_header,
                                                             const char *response_content);
 /**

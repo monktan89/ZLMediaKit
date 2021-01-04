@@ -215,10 +215,10 @@ void DecoderImp::onDecode(int stream,int codecid,int flags,int64_t pts,int64_t d
         }
 
         default:
-            if(codecid != 0){
-                if(_last_unsported_print.elapsedTime()/1000 > 5){
+            if (codecid != 0) {
+                if (_last_unsported_print.elapsedTime() / 1000 > 5) {
                     _last_unsported_print.resetTime();
-                    WarnL<< "unsupported codec type:" << getCodecName(codecid) << " " << (int)codecid;
+                    WarnL << "unsupported codec type:" << getCodecName(codecid) << " " << (int) codecid;
                 }
             }
             break;
