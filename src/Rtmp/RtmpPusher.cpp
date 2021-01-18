@@ -66,7 +66,7 @@ void RtmpPusher::onPublishResult(const SockException &ex, bool handshake_done) {
     }
 
     if (ex) {
-        teardown();
+        shutdown(SockException(Err_shutdown,"teardown"));
     }
 }
 
