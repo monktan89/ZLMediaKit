@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -60,16 +60,17 @@ public:
      void clearCache();
 
 protected:
-    string onOpenSegment(int index) override ;
-    void onDelSegment(int index) override;
-    void onWriteSegment(const char *data, int len) override;
-    void onWriteHls(const char *data, int len) override;
-    void onWriteRecordM3u8(const char *header, int hlen, const char *body, int blen) override;
+    string onOpenSegment(uint64_t index) override ;
+    void onDelSegment(uint64_t index) override;
+    void onWriteSegment(const char *data, size_t len) override;
+    void onWriteHls(const char *data, size_t len) override;
+    void onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen) override;
     void onFlushLastSegment(uint32_t duration_ms) override;
 
 private:
     std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
     std::shared_ptr<FILE> makeRecordM3u8(const string &file,const string &mode,bool setbuf = false);
+
 private:
     int _buf_size;
     string _params;

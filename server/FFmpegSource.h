@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -67,7 +67,7 @@ public:
      * @param enable_hls 是否开启hls直播或录制
      * @param enable_mp4 是否录制mp4
      */
-    void setupRecord(bool enable_hls, bool enable_mp4);
+    void setupRecordFlag(bool enable_hls, bool enable_mp4);
 
 private:
     void findAsync(int maxWaitMS ,const function<void(const MediaSource::Ptr &src)> &cb);

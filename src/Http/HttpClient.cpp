@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -129,7 +129,7 @@ void HttpClient::onErr(const SockException &ex) {
     onDisconnect(ex);
 }
 
-int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
+ssize_t HttpClient::onRecvHeader(const char *data, size_t len) {
     _parser.Parse(data);
     if(_parser.Url() == "302" || _parser.Url() == "301"){
         auto newUrl = _parser["Location"];
@@ -156,10 +156,10 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     if(_parser["Transfer-Encoding"] == "chunked"){
         //如果Transfer-Encoding字段等于chunked，则认为后续的content是不限制长度的
         _totalBodySize = -1;
-        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,uint64_t len){
+        _chunkedSplitter = std::make_shared<HttpChunkedSplitter>([this](const char *data,size_t len){
             if(len > 0){
                 auto recvedBodySize = _recvedBodySize + len;
-                onResponseBody(data, len, recvedBodySize, INT64_MAX);
+                onResponseBody(data, len, recvedBodySize, SIZE_MAX);
                 _recvedBodySize = recvedBodySize;
             }else{
                 onResponseCompleted_l();
@@ -181,21 +181,21 @@ int64_t HttpClient::onRecvHeader(const char *data, uint64_t len) {
     return -1;
 }
 
-void HttpClient::onRecvContent(const char *data, uint64_t len) {
+void HttpClient::onRecvContent(const char *data, size_t len) {
     if(_chunkedSplitter){
         _chunkedSplitter->input(data,len);
         return;
     }
     auto recvedBodySize = _recvedBodySize + len;
     if(_totalBodySize < 0){
-        //不限长度的content,最大支持INT64_MAX个字节
-        onResponseBody(data, len, recvedBodySize, INT64_MAX);
+        //不限长度的content,最大支持SIZE_MAX个字节
+        onResponseBody(data, len, recvedBodySize, SIZE_MAX);
         _recvedBodySize = recvedBodySize;
         return;
     }
 
     //固定长度的content
-    if ( recvedBodySize < _totalBodySize ) {
+    if (recvedBodySize < (size_t)_totalBodySize ) {
         //content还未接收完毕
         onResponseBody(data, len, recvedBodySize, _totalBodySize);
         _recvedBodySize = recvedBodySize;
@@ -204,7 +204,7 @@ void HttpClient::onRecvContent(const char *data, uint64_t len) {
 
     //content接收完毕
     onResponseBody(data, _totalBodySize - _recvedBodySize, _totalBodySize, _totalBodySize);
-    bool biggerThanExpected = recvedBodySize > _totalBodySize;
+    bool biggerThanExpected = recvedBodySize > (size_t)_totalBodySize;
     onResponseCompleted_l();
     if(biggerThanExpected) {
         //声明的content数据比真实的小，那么我们只截取前面部分的并断开链接

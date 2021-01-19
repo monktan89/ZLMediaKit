@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -36,7 +36,7 @@ Track::Ptr Factory::getTrackBySdp(const SdpTrack::Ptr &track) {
             return nullptr;
         }
         string aac_cfg;
-        for(int i = 0 ; i < aac_cfg_str.size() / 2 ; ++i ){
+        for(size_t i = 0 ; i < aac_cfg_str.size() / 2 ; ++i ){
             unsigned int cfg;
             sscanf(aac_cfg_str.substr(i * 2, 2).data(), "%02X", &cfg);
             cfg &= 0x00FF;

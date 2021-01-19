@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -13,6 +13,7 @@
 #include "HlsMakerImp.h"
 #include "Util/util.h"
 #include "Util/uv_errno.h"
+
 using namespace toolkit;
 
 namespace mediakit {
@@ -27,7 +28,7 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
     _path_hls = m3u8_file;
     _params = params;
     _buf_size = bufSize;
-    _file_buf.reset(new char[bufSize],[](char *ptr){
+    _file_buf.reset(new char[bufSize], [](char *ptr){
         delete[] ptr;
     });
 
@@ -49,7 +50,7 @@ void HlsMakerImp::clearCache() {
     InfoL << "isLive: " << isLive();
     //录制完了
     flushLastSegment(true);
-    if(isLive()){
+    if (isLive()){
         //hls直播才删除文件
         clear();
         _file = nullptr;
@@ -70,15 +71,15 @@ void HlsMakerImp::clearCache() {
     }
 }
 
-string HlsMakerImp::onOpenSegment(int index) {
-    string segment_name , segment_path;
+string HlsMakerImp::onOpenSegment(uint64_t index) {
+    string segment_name, segment_path;
     {
         auto strDate = getTimeStr("%Y-%m-%d");
         auto strHour = getTimeStr("%H");
         auto strTime = getTimeStr("%M-%S");
         segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
         segment_path = _path_prefix + "/" +  segment_name;
-        if(isLive()){
+        if (isLive()){
             _segment_file_paths.emplace(index,segment_path);
         }
     }
@@ -100,16 +101,16 @@ string HlsMakerImp::onOpenSegment(int index) {
     return segment_name + "?" + _params;
 }
 
-void HlsMakerImp::onDelSegment(int index) {
+void HlsMakerImp::onDelSegment(uint64_t index) {
     auto it = _segment_file_paths.find(index);
-    if(it == _segment_file_paths.end()){
+    if (it == _segment_file_paths.end()) {
         return;
     }
     File::delete_file(it->second.data());
     _segment_file_paths.erase(it);
 }
 
-void HlsMakerImp::onWriteSegment(const char *data, int len) {
+void HlsMakerImp::onWriteSegment(const char *data, size_t len) {
     if (_file) {
         fwrite(data, len, 1, _file.get());
     }
@@ -118,33 +119,34 @@ void HlsMakerImp::onWriteSegment(const char *data, int len) {
     }
 }
 
-void HlsMakerImp::onWriteHls(const char *data, int len) {
+void HlsMakerImp::onWriteHls(const char *data, size_t len) {
     auto hls = makeFile(_path_hls);
-    if(hls){
-        fwrite(data,len,1,hls.get());
+    if (hls) {
+        fwrite(data, len, 1, hls.get());
         hls.reset();
-        if(_media_src){
+        if (_media_src) {
             _media_src->registHls(true);
         }
-    } else{
+    } else {
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();
     }
 }
 
-std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file,bool setbuf) {
+std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     auto file_buf = _file_buf;
     auto ret= shared_ptr<FILE>(File::create_file(file.data(), "wb"), [file_buf](FILE *fp) {
         if (fp) {
             fclose(fp);
         }
     });
-    if(ret && setbuf){
+
+    if (ret && setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
     return ret;
 }
 
-void HlsMakerImp::onWriteRecordM3u8(const char *header, int hlen,const char *body,int blen){
+void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen){
     bool exist = true;
     string mode = "r+";
     if (access(_path_hls.c_str(), 0) == -1) {
@@ -154,7 +156,7 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, int hlen,const char *bod
 
 	auto hls = makeRecordM3u8(_path_hls, mode);
 
-    if(hls){
+    if (hls) {
         fwrite(header, hlen,1,hls.get());
         if (exist) {
         	fseek(hls.get(),-15L,SEEK_END);
@@ -165,7 +167,7 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, int hlen,const char *bod
         if(_media_src){
             _media_src->registHls(true);
         }
-    } else{
+    } else {
         WarnL << "create hls file falied, " << _path_hls << " " <<  get_uv_errmsg();
     }
 
@@ -178,7 +180,7 @@ void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
     if (broadcastRecordTs) {
         //关闭ts文件以便获取正确的文件大小
         _file = nullptr;
-        _info.time_len = duration_ms / 1000.0;
+        _info.time_len = duration_ms / 1000.0f;
         struct stat fileData;
         stat(_info.file_path.data(), &fileData);
         _info.file_size = fileData.st_size;
@@ -194,7 +196,8 @@ std::shared_ptr<FILE> HlsMakerImp::makeRecordM3u8(const string &file,const strin
             fclose(fp);
         }
     });
-    if(ret && setbuf){
+
+    if (ret && setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
     return ret;

@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -10,7 +10,7 @@
 
 #include "CommonRtp.h"
 
-CommonRtpDecoder::CommonRtpDecoder(CodecId codec, int max_frame_size ){
+CommonRtpDecoder::CommonRtpDecoder(CodecId codec, size_t max_frame_size ){
     _codec = codec;
     _max_frame_size = max_frame_size;
     obtainFrame();

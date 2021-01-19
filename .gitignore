@@ -45,6 +45,7 @@
 /build/
 /3rdpart/media-server/.idea/
 /ios/
+/cmake-build-*
 
 ### VisualStudioCode template
 .vscode/*

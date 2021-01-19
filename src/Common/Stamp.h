@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -108,9 +108,9 @@ private:
     uint32_t _last_dts = 0;
     uint32_t _last_pts = 0;
     uint32_t _last_max_pts = 0;
-    int _frames_since_last_max_pts = 0;
-    int _sorter_max_size = 0;
-    int _count_sorter_max_size = 0;
+    size_t _frames_since_last_max_pts = 0;
+    size_t _sorter_max_size = 0;
+    size_t _count_sorter_max_size = 0;
     set<uint32_t> _pts_sorter;
 };
 

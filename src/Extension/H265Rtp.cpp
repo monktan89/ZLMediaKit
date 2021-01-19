@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -64,7 +64,7 @@ bool H265RtpDecoder::inputRtp(const RtpPacket::Ptr &rtp, bool key_pos) {
 
 bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
     const uint8_t *frame = (uint8_t *) rtppack->data() + rtppack->offset;
-    int length = rtppack->size() - rtppack->offset;
+    auto length = rtppack->size() - rtppack->offset;
     int nal = H265_TYPE(frame[0]);
 
     if (nal > 50){
@@ -92,7 +92,7 @@ bool H265RtpDecoder::decodeRtp(const RtpPacket::Ptr &rtppack) {
                 return (_h265frame->keyFrame()); //i frame
             }
 
-            if (rtppack->sequence != _lastSeq + 1 && rtppack->sequence != 0) {
+            if (rtppack->sequence != (uint16_t)(_lastSeq + 1) && rtppack->sequence != 0) {
                 //中间的或末尾的rtp包，其seq必须连续(如果回环了则判定为连续)，否则说明rtp丢包，那么该帧不完整，必须得丢弃
                 _h265frame->_buffer.clear();
                 WarnL << "rtp丢包: " << rtppack->sequence << " != " << _lastSeq << " + 1,该帧被废弃";
@@ -154,7 +154,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     auto len = frame->size() - frame->prefixSize();
     auto pts = frame->pts() % cycleMS;
     auto nal_type = H265_TYPE(ptr[0]); //获取NALU的5bit 帧类型
-    auto payload_size = _ui32MtuSize - 3;
+    size_t payload_size = _ui32MtuSize - 3;
 
     //超过MTU,按照FU方式打包
     if (len > payload_size + 2) {
@@ -162,7 +162,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
         unsigned char s_e_flags;
         bool fu_start = true;
         bool mark_bit = false;
-        int offset = 2;
+        size_t offset = 2;
         while (!mark_bit) {
             if (len <= offset + payload_size) {
                 //FU end
@@ -202,7 +202,7 @@ void H265RtpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 }
 
-void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, unsigned int len, bool mark, bool first_packet, uint32_t uiStamp) {
+void H265RtpEncoder::makeH265Rtp(int nal_type,const void* data, size_t len, bool mark, bool first_packet, uint32_t uiStamp) {
     RtpCodec::inputRtp(makeRtp(getTrackType(),data,len,mark,uiStamp),first_packet && H265Frame::isKeyFrame(nal_type));
 }
 

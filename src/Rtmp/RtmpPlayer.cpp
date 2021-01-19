@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xiongziliang/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -72,7 +72,7 @@ void RtmpPlayer::play(const string &strUrl)  {
     }
 
     weak_ptr<RtmpPlayer> weak_self = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-    float play_timeout_sec = (*this)[kTimeoutMS].as<int>() / 1000.0;
+    float play_timeout_sec = (*this)[kTimeoutMS].as<int>() / 1000.0f;
     _play_timer.reset(new Timer(play_timeout_sec, [weak_self]() {
         auto strong_self = weak_self.lock();
         if (!strong_self) {
@@ -115,7 +115,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
     if (!ex) {
         //播放成功，恢复rtmp接收超时定时器
         _rtmp_recv_ticker.resetTime();
-        int timeout_ms = (*this)[kMediaTimeoutMS].as<int>();
+        auto timeout_ms = (*this)[kMediaTimeoutMS].as<uint64_t>();
         weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
         auto lam = [weakSelf, timeout_ms]() {
             auto strongSelf = weakSelf.lock();
@@ -131,7 +131,7 @@ void RtmpPlayer::onPlayResult_l(const SockException &ex, bool handshake_done) {
             return true;
         };
         //创建rtmp数据接收超时检测定时器
-        _rtmp_recv_timer = std::make_shared<Timer>(timeout_ms / 2000.0, lam, getPoller());
+        _rtmp_recv_timer = std::make_shared<Timer>(timeout_ms / 2000.0f, lam, getPoller());
     } else {
         shutdown(SockException(Err_shutdown,"teardown"));
     }
@@ -214,7 +214,7 @@ inline void RtmpPlayer::send_play() {
     AMFEncoder enc;
     enc << "play" << ++_send_req_id << nullptr << _stream_id << (double) _stream_index;
     sendRequest(MSG_CMD, enc.data());
-    auto fun = [this](AMFValue &val) {
+    auto fun = [](AMFValue &val) {
         //TraceL << "play onStatus";
         auto level = val["level"].as_string();
         auto code = val["code"].as_string();
@@ -253,12 +253,12 @@ inline void RtmpPlayer::send_pause(bool pause) {
     _beat_timer.reset();
     if (pause) {
         weak_ptr<RtmpPlayer> weakSelf = dynamic_pointer_cast<RtmpPlayer>(shared_from_this());
-        _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0, [weakSelf]() {
+        _beat_timer.reset(new Timer((*this)[kBeatIntervalMS].as<int>() / 1000.0f, [weakSelf]() {
             auto strongSelf = weakSelf.lock();
             if (!strongSelf) {
                 return false;
             }
-            uint32_t timeStamp = ::time(NULL);
+            uint32_t timeStamp = (uint32_t)::time(NULL);
             strongSelf->sendUserControl(CONTROL_PING_REQUEST, timeStamp);
             return true;
         }, getPoller()));
