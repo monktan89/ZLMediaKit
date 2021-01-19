@@ -292,7 +292,6 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
-
 void MultiMuxerPrivate::onAllTrackReady() {
     if (_rtmp) {
         _rtmp->onAllTrackReady();

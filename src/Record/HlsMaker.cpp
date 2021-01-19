@@ -51,11 +51,11 @@ void HlsMaker::makeIndexFile(bool eof) {
 
     if (_hls_record_type == 2) {
     	auto &tp = _seg_dur_list.back();
-        snprintf(file_content,sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+        snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
         rcontent.assign(file_content);
     }else{
         for (auto &tp : _seg_dur_list) {
-            snprintf(file_content,sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+            snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
             m3u8.append(file_content);
         }
     }
@@ -71,7 +71,6 @@ void HlsMaker::makeIndexFile(bool eof) {
     }else{
     	 onWriteHls(m3u8.data(), m3u8.size());
     }
-
 }
 
 void HlsMaker::inputData(void *data, size_t len, uint32_t timestamp, bool is_idr_fast_packet) {

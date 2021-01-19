@@ -143,6 +143,7 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     if (ret && setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
+	
     return ret;
 }
 
@@ -157,7 +158,7 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char 
 	auto hls = makeRecordM3u8(_path_hls, mode);
 
     if (hls) {
-        fwrite(header, hlen,1,hls.get());
+        fwrite(header, hlen, 1, hls.get());
         if (exist) {
         	fseek(hls.get(),-15L,SEEK_END);
         }
