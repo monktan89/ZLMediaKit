@@ -160,10 +160,10 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char 
     if (hls) {
         fwrite(header, hlen, 1, hls.get());
         if (exist) {
-        	fseek(hls.get(),-15L,SEEK_END);
+        	fseek(hls.get(), -15L, SEEK_END);
         }
 
-        fwrite(body, blen,1,hls.get());
+        fwrite(body, blen,1, hls.get());
         hls.reset();
         if(_media_src){
             _media_src->registHls(true);
