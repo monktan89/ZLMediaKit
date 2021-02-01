@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
  * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
@@ -155,7 +155,7 @@ int main(int argc, char *argv[]) {
     recursive_mutex mtx;
     unordered_map<void *, MediaPusher::Ptr> pusher_map;
 
-    auto add_pusher = [&](const MediaSource::Ptr &src, const string &rand_str, int index) {
+    auto add_pusher = [&](const MediaSource::Ptr &src, const string &rand_str, size_t index) {
         auto pusher = std::make_shared<MediaPusher>(src);
         auto tag = pusher.get();
         pusher->setOnCreateSocket([](const EventPoller::Ptr &poller) {
@@ -199,14 +199,14 @@ int main(int argc, char *argv[]) {
         //休眠一秒打印
         sleep(1);
 
-        int alive_pusher = 0;
+        size_t alive_pusher = 0;
         {
             lock_guard<recursive_mutex> lck(mtx);
             alive_pusher = pusher_map.size();
         }
         InfoL << "在线推流器个数:" << alive_pusher;
         auto src = get_src();
-        for(auto i = 0; i < pusher_count - alive_pusher && src && !exit_flag; ++i){
+        for(size_t i = 0; i < pusher_count - alive_pusher && src && !exit_flag; ++i){
             //有些推流器失败了，那么我们重试添加
             add_pusher(get_src(), makeRandStr(8), i);
         }
