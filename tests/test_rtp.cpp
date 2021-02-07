@@ -10,6 +10,8 @@
 
 #include <map>
 #include <iostream>
+#include "Util/MD5.h"
+#include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
 #include "Util/util.h"
@@ -26,47 +28,55 @@ using namespace mediakit;
 
 #if defined(ENABLE_RTPPROXY)
 static bool loadFile(const char *path){
-    FILE *fp = fopen(path, "rb");
+    std::shared_ptr<FILE> fp(fopen(path, "rb"), [](FILE *fp) {
+        if (fp) {
+            fclose(fp);
+        }
+    });
     if (!fp) {
         WarnL << "open file failed:" << path;
         return false;
     }
 
+    semaphore sem;
+    uint16_t len = 0;
     uint32_t timeStamp_last = 0;
-    uint16_t len;
     char rtp[2 * 1024];
     struct sockaddr addr = {0};
-    int rtp_count = 0;
-    int bytes = 0;
-    while (true) {
-        if (2 != fread(&len, 1, 2, fp)) {
-            WarnL << bytes << " " << rtp_count;
-            break;
+    auto sock = Socket::createSocket();
+
+    sock->getPoller()->doDelayTask(0, [&]() mutable -> uint64_t {
+        if (2 != fread(&len, 1, 2, fp.get())) {
+            WarnL;
+            sem.post();
+            return 0;
         }
         len = ntohs(len);
         if (len < 12 || len > sizeof(rtp)) {
-            WarnL << bytes << " " << rtp_count << " " << len;
-            break;
+            WarnL << len;
+            sem.post();
+            return 0;
         }
 
-        if (len != fread(rtp, 1, len, fp)) {
-            WarnL << bytes << " " << rtp_count;
-            break;
+        if (len != fread(rtp, 1, len, fp.get())) {
+            WarnL;
+            sem.post();
+            return 0;
         }
 
-        bytes += 2 + len;
-        ++rtp_count;
         uint32_t timeStamp;
-        RtpSelector::Instance().inputRtp(nullptr, rtp, len, &addr, &timeStamp);
-        if(timeStamp_last){
+        RtpSelector::Instance().inputRtp(sock, rtp, len, &addr, &timeStamp);
+        if (timeStamp_last) {
             auto diff = timeStamp - timeStamp_last;
-            if(diff > 0 && diff < 500){
-                usleep(diff * 1000);
+            if (diff > 0 && diff < 500) {
+                timeStamp_last = timeStamp;
+                return diff;
             }
         }
         timeStamp_last = timeStamp;
-    }
-    fclose(fp);
+        return 1;
+    });
+    sem.wait();
     return true;
 }
 #endif//#if defined(ENABLE_RTPPROXY)
@@ -87,10 +97,11 @@ int main(int argc,char *argv[]) {
     //此处选择是否导出调试文件
 //    mINI::Instance()[RtpProxy::kDumpDir] = "/Users/xzl/Desktop/";
 
-    if (argc == 2)
-      loadFile(argv[1]);
-    else
-      ErrorL << "parameter error.";
+    if (argc == 2) {
+        loadFile(argv[1]);
+    } else {
+        ErrorL << "parameter error.";
+    }
 #else
     ErrorL << "please ENABLE_RTPPROXY and then test";
 #endif//#if defined(ENABLE_RTPPROXY)

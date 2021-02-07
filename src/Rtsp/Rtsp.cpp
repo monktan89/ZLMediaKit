@@ -415,7 +415,8 @@ string printSSRC(uint32_t ui32Ssrc) {
 }
 
 Buffer::Ptr makeRtpOverTcpPrefix(uint16_t size, uint8_t interleaved){
-    auto rtp_tcp = std::make_shared<BufferRaw>(RtpPacket::kRtpTcpHeaderSize);
+    auto rtp_tcp = BufferRaw::create();
+    rtp_tcp->setCapacity(RtpPacket::kRtpTcpHeaderSize);
     rtp_tcp->setSize(RtpPacket::kRtpTcpHeaderSize);
     auto ptr = rtp_tcp->data();
     ptr[0] = '$';
@@ -474,17 +475,36 @@ size_t RtpHeader::getPaddingSize(size_t rtp_size) const {
     if (!padding) {
         return 0;
     }
-    auto end = (uint8_t *) this + rtp_size;
+    auto end = (uint8_t *) this + rtp_size - 1;
     return *end;
 }
 
-size_t RtpHeader::getPayloadSize(size_t rtp_size){
+size_t RtpHeader::getPayloadSize(size_t rtp_size) const{
     auto invalid_size = getPayloadOffset() + getPaddingSize(rtp_size);
     if (invalid_size + RtpPacket::kRtpHeaderSize >= rtp_size) {
         return 0;
     }
     return rtp_size - invalid_size - RtpPacket::kRtpHeaderSize;
 }
+
+string RtpHeader::dumpString(size_t rtp_size) const{
+    _StrPrinter printer;
+    printer << "version:" << (int)version << "\r\n";
+    printer << "padding:" << getPaddingSize(rtp_size) << "\r\n";
+    printer << "ext:" << getExtSize() << "\r\n";
+    printer << "csrc:" << getCsrcSize() << "\r\n";
+    printer << "mark:" << (int)mark << "\r\n";
+    printer << "pt:" << (int)pt << "\r\n";
+    printer << "seq:" << ntohs(seq) << "\r\n";
+    printer << "stamp:" << ntohl(stamp) << "\r\n";
+    printer << "ssrc:" << ntohl(ssrc) << "\r\n";
+    printer << "rtp size:" << rtp_size << "\r\n";
+    printer << "payload offset:" << getPayloadOffset() << "\r\n";
+    printer << "payload size:" << getPayloadSize(rtp_size) << "\r\n";
+    return std::move(printer);
+}
+
+///////////////////////////////////////////////////////////////////////
 
 RtpHeader* RtpPacket::getHeader(){
     //需除去rtcp over tcp 4个字节长度
@@ -512,4 +532,22 @@ size_t RtpPacket::getPayloadSize(){
     return getHeader()->getPayloadSize(size() - kRtpTcpHeaderSize);
 }
 
+RtpPacket::Ptr RtpPacket::create(){
+#if 0
+    static ResourcePool<RtpPacket> packet_pool;
+    static onceToken token([]() {
+        packet_pool.setSize(1024);
+    });
+    auto ret = packet_pool.obtain();
+    ret->setSize(0);
+    return ret;
+#else
+    return Ptr(new RtpPacket);
+#endif
+}
+
 }//namespace mediakit
+
+namespace toolkit {
+    StatisticImp(mediakit::RtpPacket);
+}

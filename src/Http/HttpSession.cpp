@@ -100,7 +100,7 @@ void HttpSession::onError(const SockException& err) {
                     << ",耗时(s):" << duration;
 
         GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-        if(_total_bytes_usage > iFlowThreshold * 1024){
+        if(_total_bytes_usage >= iFlowThreshold * 1024){
             NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration , true, static_cast<SockInfo &>(*this));
         }
         return;
@@ -515,7 +515,7 @@ void HttpSession::sendResponse(int code,
     if(no_content_length){
         //http-flv直播是Keep-Alive类型
         bClose = false;
-    }else if(size >= SIZE_MAX || size < 0 ){
+    }else if((size_t) size >= SIZE_MAX || size < 0 ){
         //不固定长度的body，那么发送完body后应该关闭socket，以便浏览器做下载完毕的判断
         bClose = true;
     }

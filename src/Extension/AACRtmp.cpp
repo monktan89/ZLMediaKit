@@ -42,7 +42,7 @@ void AACRtmpDecoder::inputRtmp(const RtmpPacket::Ptr &pkt) {
 }
 
 void AACRtmpDecoder::onGetAAC(const char* data, size_t len, uint32_t stamp) {
-    auto frame = ResourcePoolHelper<FrameImp>::obtainObj();
+    auto frame = FrameImp::create();
     frame->_codec_id = CodecAAC;
 
     //生成adts头
@@ -95,9 +95,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     }
 
     if(!_aac_cfg.empty()){
-        RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
-        rtmpPkt->buffer.clear();
-
+        auto rtmpPkt = RtmpPacket::create();
         //header
         uint8_t is_config = false;
         rtmpPkt->buffer.push_back(_audio_flv_flags);
@@ -117,8 +115,7 @@ void AACRtmpEncoder::inputFrame(const Frame::Ptr &frame) {
 
 void AACRtmpEncoder::makeAudioConfigPkt() {
     _audio_flv_flags = getAudioRtmpFlags(std::make_shared<AACTrack>(_aac_cfg));
-    RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
-    rtmpPkt->buffer.clear();
+    auto rtmpPkt = RtmpPacket::create();
 
     //header
     uint8_t is_config = true;

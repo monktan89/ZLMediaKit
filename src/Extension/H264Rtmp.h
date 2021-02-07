@@ -22,7 +22,7 @@ namespace mediakit{
  * h264 Rtmp解码类
  * 将 h264 over rtmp 解复用出 h264-Frame
  */
-class H264RtmpDecoder : public RtmpCodec ,public ResourcePoolHelper<H264Frame> {
+class H264RtmpDecoder : public RtmpCodec {
 public:
     typedef std::shared_ptr<H264RtmpDecoder> Ptr;
 
@@ -52,7 +52,7 @@ protected:
 /**
  * 264 Rtmp打包类
  */
-class H264RtmpEncoder : public H264RtmpDecoder, public ResourcePoolHelper<RtmpPacket> {
+class H264RtmpEncoder : public H264RtmpDecoder{
 public:
     typedef std::shared_ptr<H264RtmpEncoder> Ptr;
 

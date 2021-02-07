@@ -36,7 +36,7 @@ void RtmpSession::onError(const SockException& err) {
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
 
-    if(_total_bytes > iFlowThreshold * 1024){
+    if(_total_bytes >= iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _total_bytes, duration, isPlayer, static_cast<SockInfo &>(*this));
     }
 }
@@ -458,7 +458,8 @@ void RtmpSession::onProcessCmd(AMFDecoder &dec) {
     (this->*fun)(dec);
 }
 
-void RtmpSession::onRtmpChunk(RtmpPacket &chunk_data) {
+void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
+    auto &chunk_data = *packet;
     switch (chunk_data.type_id) {
     case MSG_CMD:
     case MSG_CMD3: {
@@ -495,7 +496,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket &chunk_data) {
             _set_meta_data = true;
             _publisher_src->setMetaData(TitleMeta().getMetadata());
         }
-        _publisher_src->onWrite(std::make_shared<RtmpPacket>(std::move(chunk_data)));
+        _publisher_src->onWrite(std::move(packet));
         break;
     }
 

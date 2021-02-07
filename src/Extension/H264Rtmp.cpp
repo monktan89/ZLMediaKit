@@ -15,10 +15,8 @@ H264RtmpDecoder::H264RtmpDecoder() {
     _h264frame = obtainFrame();
 }
 
-H264Frame::Ptr  H264RtmpDecoder::obtainFrame() {
-    //从缓存池重新申请对象，防止覆盖已经写入环形缓存的对象
-    auto frame = obtainObj();
-    frame->_buffer.clear();
+H264Frame::Ptr H264RtmpDecoder::obtainFrame() {
+    auto frame = FrameImp::create<H264Frame>();
     frame->_prefix_size = 4;
     return frame;
 }
@@ -124,7 +122,7 @@ inline void H264RtmpDecoder::onGetH264(const char* pcData, size_t iLen, uint32_t
 #if 1
     _h264frame->_dts = dts;
     _h264frame->_pts = pts;
-    _h264frame->_buffer.assign("\x0\x0\x0\x1", 4);  //添加264头
+    _h264frame->_buffer.assign("\x00\x00\x00\x01", 4);  //添加264头
     _h264frame->_buffer.append(pcData, iLen);
 
     //写入环形缓存
@@ -185,7 +183,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         }
     }
 
-    if(_lastPacket && _lastPacket->time_stamp != frame->dts()) {
+    if(_lastPacket && (_lastPacket->time_stamp != frame->dts() || type == H264Frame::NAL_B_P)) {
         RtmpCodec::inputRtmp(_lastPacket);
         _lastPacket = nullptr;
     }
@@ -196,8 +194,7 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
         bool is_config = false;
         flags |= (((frame->configFrame() || frame->keyFrame()) ? FLV_KEY_FRAME : FLV_INTER_FRAME) << 4);
 
-        _lastPacket = ResourcePoolHelper<RtmpPacket>::obtainObj();
-        _lastPacket->buffer.clear();
+        _lastPacket = RtmpPacket::create();
         _lastPacket->buffer.push_back(flags);
         _lastPacket->buffer.push_back(!is_config);
         int32_t cts = frame->pts() - frame->dts();
@@ -217,6 +214,10 @@ void H264RtmpEncoder::inputFrame(const Frame::Ptr &frame) {
     _lastPacket->buffer.append((char *) &size, 4);
     _lastPacket->buffer.append(pcData, iLen);
     _lastPacket->body_size = _lastPacket->buffer.size();
+    if (type == H264Frame::NAL_B_P) {
+        RtmpCodec::inputRtmp(_lastPacket);
+        _lastPacket = nullptr;
+    }
 }
 
 void H264RtmpEncoder::makeVideoConfigPkt() {
@@ -224,9 +225,7 @@ void H264RtmpEncoder::makeVideoConfigPkt() {
     flags |= (FLV_KEY_FRAME << 4);
     bool is_config = true;
 
-    RtmpPacket::Ptr rtmpPkt = ResourcePoolHelper<RtmpPacket>::obtainObj();
-    rtmpPkt->buffer.clear();
-
+    auto rtmpPkt = RtmpPacket::create();
     //header
     rtmpPkt->buffer.push_back(flags);
     rtmpPkt->buffer.push_back(!is_config);

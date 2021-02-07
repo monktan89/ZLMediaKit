@@ -82,7 +82,7 @@ void RtspSession::onError(const SockException &err) {
 
     //流量统计事件广播
     GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-    if(_bytes_usage > iFlowThreshold * 1024){
+    if(_bytes_usage >= iFlowThreshold * 1024){
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _media_info, _bytes_usage, duration, isPlayer, static_cast<SockInfo &>(*this));
     }
 
@@ -913,8 +913,8 @@ void RtspSession::send_NotAcceptable() {
     sendRtspResponse("406 Not Acceptable",{"Connection","Close"});
 }
 
-void RtspSession::onRtpSorted(const RtpPacket::Ptr &rtp, int track_idx) {
-    _push_src->onWrite(rtp, false);
+void RtspSession::onRtpSorted(RtpPacket::Ptr rtp, int track_idx) {
+    _push_src->onWrite(std::move(rtp), false);
 }
 
 void RtspSession::onRcvPeerUdpData(int interleaved, const Buffer::Ptr &buf, const struct sockaddr &addr) {
@@ -1178,9 +1178,8 @@ void RtspSession::sendRtpPacket(const RtspMediaSource::RingDataType &pkt) {
                     shutdown(SockException(Err_shutdown, "udp sock not opened yet"));
                     return;
                 }
-                BufferRtp::Ptr buffer(new BufferRtp(rtp, 4));
-                _bytes_usage += buffer->size();
-                pSock->send(std::move(buffer), nullptr, 0, ++i == size);
+                _bytes_usage += rtp->size() - RtpPacket::kRtpTcpHeaderSize;
+                pSock->send(std::make_shared<BufferRtp>(rtp, RtpPacket::kRtpTcpHeaderSize), nullptr, 0, ++i == size);
             });
         }
             break;

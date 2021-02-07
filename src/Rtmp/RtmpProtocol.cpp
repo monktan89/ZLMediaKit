@@ -10,9 +10,7 @@
 
 #include "RtmpProtocol.h"
 #include "Rtmp/utils.h"
-#include "Util/util.h"
-#include "Util/onceToken.h"
-#include "Thread/ThreadPool.h"
+#include "RtmpMediaSource.h"
 using namespace toolkit;
 
 #define C1_DIGEST_SIZE 32
@@ -570,7 +568,11 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
         }
 
         RtmpHeader &header = *((RtmpHeader *) (ptr + offset));
-        auto &chunk_data = _map_chunk_data[_now_chunk_id];
+        auto &packet_ptr = _map_chunk_data[_now_chunk_id];
+        if (!packet_ptr) {
+            packet_ptr = RtmpPacket::create();
+        }
+        auto &chunk_data = *packet_ptr;
         chunk_data.chunk_id = _now_chunk_id;
         switch (header_len) {
             case 12:
@@ -612,16 +614,17 @@ const char* RtmpProtocol::handle_rtmp(const char *data, size_t len) {
             _now_stream_index = chunk_data.stream_index;
             chunk_data.time_stamp = time_stamp + (chunk_data.is_abs_stamp ? 0 : chunk_data.time_stamp);
             if (chunk_data.body_size) {
-                handle_chunk(chunk_data);
+                handle_chunk(std::move(packet_ptr));
+            } else {
+                packet_ptr = nullptr;
             }
-            chunk_data.buffer.clear();
-            chunk_data.is_abs_stamp = false;
         }
     }
     return ptr;
 }
 
-void RtmpProtocol::handle_chunk(RtmpPacket& chunk_data) {
+void RtmpProtocol::handle_chunk(RtmpPacket::Ptr packet) {
+    auto &chunk_data = *packet;
     switch (chunk_data.type_id) {
         case MSG_ACK: {
             if (chunk_data.buffer.size() < 4) {
@@ -750,30 +753,29 @@ void RtmpProtocol::handle_chunk(RtmpPacket& chunk_data) {
                 if (ptr + size > ptr_tail) {
                     break;
                 }
-                RtmpPacket sub_packet;
+                auto sub_packet_ptr = RtmpPacket::create();
+                auto &sub_packet = *sub_packet_ptr;
                 sub_packet.buffer.assign((char *)ptr, size);
                 sub_packet.type_id = type;
                 sub_packet.body_size = size;
                 sub_packet.time_stamp = ts;
                 sub_packet.stream_index = chunk_data.stream_index;
                 sub_packet.chunk_id = chunk_data.chunk_id;
-                handle_chunk(sub_packet);
+                handle_chunk(std::move(sub_packet_ptr));
                 ptr += size;
             }
             break;
         }
 
-        default: onRtmpChunk(chunk_data); break;
+        default: onRtmpChunk(std::move(packet)); break;
     }
 }
 
-BufferRaw::Ptr RtmpProtocol::obtainBuffer() {
-    return std::make_shared<BufferRaw>() ;//_bufferPool.obtain();
-}
-
 BufferRaw::Ptr RtmpProtocol::obtainBuffer(const void *data, size_t len) {
-    auto buffer = obtainBuffer();
-    buffer->assign((const char *) data, len);
+    auto buffer = BufferRaw::create();
+    if (data && len) {
+        buffer->assign((const char *) data, len);
+    }
     return buffer;
 }
 

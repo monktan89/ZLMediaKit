@@ -39,7 +39,7 @@ public:
 
 protected:
     virtual void onSendRawData(Buffer::Ptr buffer) = 0;
-    virtual void onRtmpChunk(RtmpPacket &chunk_data) = 0;
+    virtual void onRtmpChunk(RtmpPacket::Ptr chunk_data) = 0;
     virtual void onStreamBegin(uint32_t stream_index){
         _stream_index = stream_index;
     }
@@ -57,9 +57,6 @@ protected:
 
 protected:
     void reset();
-    BufferRaw::Ptr obtainBuffer();
-    BufferRaw::Ptr obtainBuffer(const void *data, size_t len);
-
     void sendAcknowledgement(uint32_t size);
     void sendAcknowledgementSize(uint32_t size);
     void sendPeerBandwidth(uint32_t size);
@@ -74,6 +71,7 @@ protected:
     void sendResponse(int type, const string &str);
     void sendRtmp(uint8_t type, uint32_t stream_index, const std::string &buffer, uint32_t stamp, int chunk_id);
     void sendRtmp(uint8_t type, uint32_t stream_index, const Buffer::Ptr &buffer, uint32_t stamp, int chunk_id);
+    BufferRaw::Ptr obtainBuffer(const void *data = nullptr, size_t len = 0);
 
 private:
     void handle_C1_simple(const char *data);
@@ -89,7 +87,7 @@ private:
     const char* handle_C0C1(const char *data, size_t len);
     const char* handle_C2(const char *data, size_t len);
     const char* handle_rtmp(const char *data, size_t len);
-    void handle_chunk(RtmpPacket &chunk_data);
+    void handle_chunk(RtmpPacket::Ptr chunk_data);
 
 protected:
     int _send_req_id = 0;
@@ -112,7 +110,7 @@ private:
     //////////Rtmp parser//////////
     function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
-    unordered_map<int, RtmpPacket> _map_chunk_data;
+    unordered_map<int, RtmpPacket::Ptr> _map_chunk_data;
 };
 
 } /* namespace mediakit */
