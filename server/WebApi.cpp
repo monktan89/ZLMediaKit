@@ -1205,6 +1205,11 @@ void installWebApi() {
         val["data"]["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
 #endif
     });
+	
+	api_regist("/index/api/getPusherProxyNumbers", [](API_ARGS_MAP){
+        CHECK_SECRET();
+        val["count"] = (uint32_t)s_proxyPusherMap.size();
+    });
 
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
