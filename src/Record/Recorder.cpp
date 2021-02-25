@@ -55,9 +55,9 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
             GET_CONFIG(string, hlsPath, Record::kFilePath);
             string m3u8FilePath;
             if (enableVhost) {
-                m3u8FilePath = vhost + "/" + app + "/" + stream_id + "/record.m3u8";
+                m3u8FilePath = "hls_record/" + vhost + "/" + app + "/" + stream_id + "/record.m3u8";
             } else {
-                m3u8FilePath = app + "/" + stream_id + "/record.m3u8";
+                m3u8FilePath = "hls_record/" + app + "/" + stream_id + "/record.m3u8";
             }
             //Here we use the customized file path.
             if (!customized_path.empty()) {
