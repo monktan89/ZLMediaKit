@@ -61,7 +61,7 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
             }
             //Here we use the customized file path.
             if (!customized_path.empty()) {
-                m3u8FilePath = customized_path + "/record.m3u8";
+                m3u8FilePath = customized_path + "/" + stream_id + "/record.m3u8";
             }
             return File::absolutePath(m3u8FilePath, hlsPath);
         }
