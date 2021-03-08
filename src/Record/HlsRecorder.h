@@ -21,7 +21,7 @@ public:
     HlsRecorder(const string &m3u8_file, const string &params, uint32_t record_type){
         GET_CONFIG(uint32_t, hlsNum,Hls::kSegmentNum);
         GET_CONFIG(uint32_t, hlsBufSize,Hls::kFileBufSize);
-        GET_CONFIG(uint32_t, hlsDuration,Hls::kSegmentDuration);
+        GET_CONFIG(float, hlsDuration,Hls::kSegmentDuration);
         _hls = std::make_shared<HlsMakerImp>(m3u8_file,params, hlsBufSize, hlsDuration, hlsNum, record_type);
 		//清空上次的残余文件
         _hls->clearCache();

@@ -80,7 +80,7 @@ private:
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
-    map<int /*index*/,string/*file_path*/> _segment_file_paths;
+    map<uint64_t /*index*/,string/*file_path*/> _segment_file_paths;
     time_t _ui64StartedTime;
 };
 
