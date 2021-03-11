@@ -146,7 +146,7 @@ bool MultiMuxerPrivate::setupRecord(MediaSource &sender, Recorder::type type, bo
         case Recorder::type_hls_record : {
             if (start && !_hls_record) {
                 //开始录制
-                auto hls_record = dynamic_pointer_cast<HlsRecorder>(makeRecorder(getTracks(true), type, custom_path, sender));
+                auto hls_record = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(true), type, custom_path, max_second));
                 if (hls_record) {
                     //设置HlsMediaSource的事件监听器
                     hls_record->setListener(_listener);
