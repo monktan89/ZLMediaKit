@@ -15,7 +15,7 @@
 
 #define RTP_APP_NAME "rtp"
 
-const uint16_t RTP_PAUSE_CHECK_TIMEOUT = 3000;
+const uint16_t RTP_PAUSE_CHECK_TIMEOUT = 300;
 
 namespace mediakit {
 
