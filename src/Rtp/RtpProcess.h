@@ -66,11 +66,6 @@ public:
     int getTotalReaderCount();
     void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
 
-    /*
-     * 设置rtp流暂停
-     */
-    void setRtpPause(bool pause);
-
 protected:
     void inputFrame(const Frame::Ptr &frame) override;
     void addTrack(const Track::Ptr & track) override;
@@ -99,10 +94,7 @@ private:
     MultiMediaSourceMuxer::Ptr _muxer;
     atomic_bool _stop_rtp_check{false};
     atomic_flag _busy_flag{false};
-
-private:
-    atomic_bool _paused{false};
-    Ticker _pause_rtp_time;
+    Ticker _pause_rtp_check;
 };
 
 }//namespace mediakit

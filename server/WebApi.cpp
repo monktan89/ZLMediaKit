@@ -889,20 +889,6 @@ void installWebApi() {
         val["local_ip"] = process->get_local_ip();
     });
 
-    api_regist("/index/api/setRtpPause", [](API_ARGS_MAP){
-        CHECK_SECRET();
-        CHECK_ARGS("stream_id", "pause");
-
-        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
-        if (!process) {
-            val["code"] = -1;
-            return;
-        }
-
-        auto pause = allArgs["pause"];
-        process->setRtpPause(pause);
-    });
-
     api_regist("/index/api/openRtpServer",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("port", "enable_tcp", "stream_id");
@@ -994,31 +980,27 @@ void installWebApi() {
     api_regist("/index/api/pauseRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
+
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
-        if (it == s_rtpServerMap.end()) {
-            val["hit"] = 0;
+        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (!process) {
+            val["code"] = -1;
             return;
         }
-        auto server = it->second;
-        server->pauseRtpCheck(allArgs["stream_id"]);
-        val["hit"] = 1;
+        process->setStopCheckRtp(true);
     });
 
     api_regist("/index/api/resumeRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
 
-        lock_guard<recursive_mutex> lck(s_rtpServerMapMtx);
-        auto it = s_rtpServerMap.find(allArgs["stream_id"]);
-        if (it == s_rtpServerMap.end()) {
-            val["hit"] = 0;
+        //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
+        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (!process) {
+            val["code"] = -1;
             return;
         }
-        auto server = it->second;
-        server->resumeRtpCheck(allArgs["stream_id"]);
-        val["hit"] = 1;
+        process->setStopCheckRtp(false);
     });
 
 #endif//ENABLE_RTPPROXY

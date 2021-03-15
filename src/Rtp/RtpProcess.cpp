@@ -15,6 +15,8 @@
 
 #define RTP_APP_NAME "rtp"
 
+const uint16_t RTP_PAUSE_CHECK_TIMEOUT = 3000;
+
 namespace mediakit {
 
 RtpProcess::RtpProcess(const string &stream_id) {
@@ -126,16 +128,11 @@ void RtpProcess::addTrackCompleted() {
 }
 
 bool RtpProcess::alive() {
-    if(_paused.load()) {
-        if(_pause_rtp_time.elapsedTime()/ 1000 < 180){
-            return true;
-        }else {
-            ErrorP(this) << "Pause timeout.";
+    if (_stop_rtp_check.load()) {
+        if(_pause_rtp_check.elapsedTime()/1000 >= RTP_PAUSE_CHECK_TIMEOUT){
+            ErrorP(this) << "Pause rtp timeout(>5 minutes).";
             return false;
         }
-    }
-
-    if (_stop_rtp_check.load()) {
         return true;
     }
 
@@ -148,6 +145,7 @@ bool RtpProcess::alive() {
 
 void RtpProcess::setStopCheckRtp(bool is_check){
     _stop_rtp_check = is_check;
+    _pause_rtp_check.resetTime()
 }
 
 void RtpProcess::onDetach() {
@@ -192,12 +190,6 @@ int RtpProcess::getTotalReaderCount() {
 
 void RtpProcess::setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
     setDelegate(listener);
-}
-
-void RtpProcess::setRtpPause(bool pause)
-{
-    _paused = pause;
-    _pause_rtp_time.resetTime();
 }
 
 void RtpProcess::emitOnPublish() {
