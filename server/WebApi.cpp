@@ -982,25 +982,23 @@ void installWebApi() {
         CHECK_ARGS("stream_id");
 
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
-        if (!process) {
-            val["code"] = -1;
-            return;
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (rtp_process) {
+            rtp_process->setStopCheckRtp(true);
+        } else {
+            val["code"] = API::NotFound;
         }
-        process->setStopCheckRtp(true);
     });
 
     api_regist("/index/api/resumeRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-
-        //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
-        auto process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
-        if (!process) {
-            val["code"] = -1;
-            return;
+        auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
+        if (rtp_process) {
+            rtp_process->setStopCheckRtp(false);
+        } else {
+            val["code"] = API::NotFound;
         }
-        process->setStopCheckRtp(false);
     });
 
 #endif//ENABLE_RTPPROXY
@@ -1188,7 +1186,7 @@ void installWebApi() {
         val["data"]["totalMemUsageMB"] = (int)(bytes / 1024 / 1024);
 #endif
     });
-	
+
 	api_regist("/index/api/getPusherProxyNumbers", [](API_ARGS_MAP){
         CHECK_SECRET();
         val["count"] = (uint32_t)s_proxyPusherMap.size();
