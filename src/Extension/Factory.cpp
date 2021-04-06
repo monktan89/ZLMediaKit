@@ -182,7 +182,7 @@ Track::Ptr getTrackByCodecId(CodecId codecId, int sample_rate = 0, int channels 
         case CodecAAC : return std::make_shared<AACTrack>();
         case CodecOpus: return std::make_shared<OpusTrack>();
         case CodecG711A :
-        case CodecG711U : return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codecId, 8000, channels, sample_bit) : nullptr;
+        case CodecG711U : return (sample_rate && channels && sample_bit) ? std::make_shared<G711Track>(codecId, sample_rate, channels, sample_bit) : nullptr;
         default : WarnL << "暂不支持该CodecId:" << codecId; return nullptr;
     }
 }
