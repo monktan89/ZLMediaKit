@@ -19,8 +19,8 @@
 #include "Rtsp/RtspSession.h"
 #include "Http/HttpSession.h"
 #include "WebHook.h"
-#include "Record/MP4Recorder.h"
 #include "WebApi.h"
+#include "Record/MP4Recorder.h"
 #include "Util/base64.h"
 
 using namespace toolkit;
@@ -354,11 +354,16 @@ void installWebHook(){
             return;
         }
         ArgsType body;
-        body["regist"] = bRegist;
-        body["schema"] = sender.getSchema();
-        body["vhost"] = sender.getVhost();
-        body["app"] = sender.getApp();
-        body["stream"] = sender.getId();
+        if (bRegist) {
+            body = makeMediaSourceJson(sender);
+            body["regist"] = bRegist;
+        } else {
+            body["schema"] = sender.getSchema();
+            body["vhost"] = sender.getVhost();
+            body["app"] = sender.getApp();
+            body["stream"] = sender.getId();
+            body["regist"] = bRegist;
+        }
         //执行hook
         do_http_hook(hook_stream_chaned,body, nullptr);
     });

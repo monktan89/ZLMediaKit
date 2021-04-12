@@ -124,6 +124,7 @@ bool checkArgs(Args &&args, First &&first, KeyTypes &&...keys) {
 
 void installWebApi();
 void unInstallWebApi();
+Value makeMediaSourceJson(MediaSource &media);
 
 class ProxyPusherInfo {
 public:
