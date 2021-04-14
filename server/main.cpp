@@ -95,6 +95,25 @@ onceToken token1([](){
 
 }  // namespace mediakit
 
+std::string getLocalIp() {
+    std::string local_ip;
+#ifdef ENABLE_LINUX
+    auto ips = SockUtil::getInterfaceList();
+    for (auto &obj : ips) {
+        if (obj["name"] == "eth1") {
+            local_ip = obj["ip"];
+        } else if (obj["name"] == "eth0") {
+            local_ip = obj["ip"];
+        } else {
+            local_ip = SockUtil::get_local_ip();
+        }
+    }
+#else
+    local_ip = SockUtil::get_local_ip();
+#endif
+
+    return local_ip;
+}
 
 class CMD_main : public CMD {
 public:
@@ -266,7 +285,12 @@ int start_main(int argc,char *argv[]) {
         //如果自定义了mediaserverid，在这里覆盖配置文件
         if(!msid.empty()) {
             mINI::Instance()[General::kMediaServerId] = msid;
+        } else {
+            mINI::Instance()[General::kMediaServerId] = getLocalIp();
         }
+
+        GET_CONFIG(string, mediaServerId, General::kMediaServerId);
+        InfoL << "本服务器运行ID为: " << mediaServerId;
 
         if(!File::is_dir(ssl_file.data())){
             //不是文件夹，加载证书，证书包含公钥和私钥
