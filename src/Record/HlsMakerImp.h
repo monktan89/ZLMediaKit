@@ -57,7 +57,7 @@ public:
      /**
       * 清空缓存
       */
-     void clearCache();
+     void clearCache(bool isFirst = false);
 
 protected:
     string onOpenSegment(uint64_t index) override ;

@@ -24,7 +24,7 @@ public:
         GET_CONFIG(float, hlsDuration,Hls::kSegmentDuration);
         _hls = std::make_shared<HlsMakerImp>(m3u8_file,params, hlsBufSize, hlsDuration, hlsNum, record_type);
 		//清空上次的残余文件
-        _hls->clearCache();
+        _hls->clearCache(true);
     }
 
     ~HlsRecorder(){}

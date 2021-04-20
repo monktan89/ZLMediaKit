@@ -46,7 +46,7 @@ HlsMakerImp::~HlsMakerImp() {
     clearCache();
 }
 
-void HlsMakerImp::clearCache() {
+void HlsMakerImp::clearCache(bool isFirst) {
     InfoL << "isLive: " << isLive();
     //录制完了
     flushLastSegment(true);
@@ -57,6 +57,7 @@ void HlsMakerImp::clearCache() {
         _segment_file_paths.clear();
         File::delete_file(_path_prefix.data());
     }else{
+        if (isFirst) return; //第一次创建清除cache不需要上报
     	//hook接口
     	 HlsInfo info;
     	if (_media_src) {

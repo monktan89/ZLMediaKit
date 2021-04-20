@@ -193,6 +193,7 @@ void installWebHook(){
         body["start_time"] = (Json::UInt64)info.ui64StartedTime;
         body["time_len"] = (Json::UInt64)info.ui64TimeLen;
 
+        InfoL << "do_hook_record_hls, file_path: " << info.strFilePath;
         //执行hook
         do_http_hook(hook_record_hls,body, nullptr);
     });
@@ -253,6 +254,7 @@ void installWebHook(){
                 if (obj.isMember("enableMP4")) {
                     enableMP4 = obj["enableMP4"].asBool();
                 }
+                InfoL << "on_publish authentication success, enableHls: " << enableHls << ", enableMP4: " << enableMP4;
                 invoker(err, enableHls, enableMP4);
             } else {
                 //推流鉴权失败
