@@ -18,6 +18,7 @@ endif()
 #设置bin和lib库目录
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/release)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_definitions(-DENABLE_LINUX)
     SET(LIBRARY_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
     SET(EXECUTABLE_OUTPUT_PATH ${RELEASE_DIR}/linux/${BuildType})
     add_compile_options(-fPIC -Wall -Wno-unused-variable -Wno-unused-value)

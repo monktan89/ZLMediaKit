@@ -8,10 +8,8 @@
  * may be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <map>
 #include <signal.h>
 #include <iostream>
-#include "Util/MD5.h"
 #include "Util/File.h"
 #include "Util/logger.h"
 #include "Util/SSLBox.h"
