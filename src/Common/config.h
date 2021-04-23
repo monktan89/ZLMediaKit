@@ -315,6 +315,8 @@ namespace RtpProxy {
 extern const string kDumpDir;
 //rtp接收超时时间
 extern const string kTimeoutSec;
+//rtp包最大长度限制，给gb28181 rtp包限制ps包大小, 单位k
+extern const string kRtpPacketMaxLength;
 } //namespace RtpProxy
 
 /**

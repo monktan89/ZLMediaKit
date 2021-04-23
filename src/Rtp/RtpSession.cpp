@@ -12,7 +12,9 @@
 #include "RtpSession.h"
 #include "RtpSelector.h"
 #include "Network/TcpServer.h"
+#include "Common/config.h"
 #include "Rtsp/RtpReceiver.h"
+
 namespace mediakit{
 
 const string RtpSession::kStreamID = "stream_id";
@@ -58,6 +60,7 @@ void RtpSession::onManager() {
 }
 
 void RtpSession::onRtpPacket(const char *data, size_t len) {
+	GET_CONFIG(uint32_t, rtpPacketMaxLength, RtpProxy::kRtpPacketMaxLength);
     if (_search_rtp) {
         //搜索上下文期间，数据丢弃
         if (_search_rtp_finished) {
@@ -67,7 +70,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         }
         return;
     }
-    if (len > 1024 * 10) {
+    if (len > 1024 * rtpPacketMaxLength) {
         _search_rtp = true;
         WarnL << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖，开始搜索ssrc以便恢复上下文";
         return;

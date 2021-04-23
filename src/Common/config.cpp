@@ -286,10 +286,13 @@ namespace RtpProxy {
 const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
 //rtp接收超时时间
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
+//rtp包最大长度限制，给gb28181 rtp包限制ps包大小, 单位k
+const string kRtpPacketMaxLength = RTP_PROXY_FIELD"rtpPacketMaxLength";
 
 onceToken token([](){
     mINI::Instance()[kDumpDir] = "";
     mINI::Instance()[kTimeoutSec] = 15;
+    mINI::Instance()[kRtpPacketMaxLength] = 10;
 },nullptr);
 } //namespace RtpProxy
 

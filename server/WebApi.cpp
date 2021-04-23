@@ -501,6 +501,7 @@ void installWebApi() {
         }
     });
 
+#if 0
     //批量主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
     api_regist("/index/api/close_streams",[](API_ARGS_MAP){
@@ -535,6 +536,7 @@ void installWebApi() {
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
     });
+#endif
 
     //获取所有TcpSession列表信息
     //可以根据本地端口和远端ip来筛选
@@ -625,7 +627,7 @@ void installWebApi() {
 
         //设置推流中断处理逻辑
         pusher->setOnShutdown([poller,schema,vhost, app, stream, url, cb, key](const SockException &ex) {
-            WarnL << "Server connection is closed:" << ex.getErrCode() << " " << ex.what();
+            WarnL << "Pusher stream: " << stream <<", Server connection is closed: " << ex.getErrCode() << " " << ex.what();
             //重试
             //rePushDelay(poller,schema,vhost,app, stream, url);
             lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
