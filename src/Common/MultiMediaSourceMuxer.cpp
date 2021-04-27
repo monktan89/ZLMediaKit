@@ -98,12 +98,14 @@ void MultiMuxerPrivate::setMediaListener(const std::weak_ptr<MediaSourceEvent> &
 
 int MultiMuxerPrivate::totalReaderCount() const {
     auto hls = _hls;
+    auto hls_record = _hls_record;
     return (_rtsp ? _rtsp->readerCount() : 0) +
            (_rtmp ? _rtmp->readerCount() : 0) +
            (_ts ? _ts->readerCount() : 0) +
 #if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->readerCount() : 0) +
 #endif
+           (hls_record ? 1 : 0) +
            (hls ? hls->readerCount() : 0);
 }
 
@@ -360,7 +362,9 @@ int MultiMediaSourceMuxer::totalReaderCount(MediaSource &sender) {
 }
 
 bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type, bool start, const string &custom_path, size_t max_second) {
-    return _muxer->setupRecord(sender, type, start, custom_path, max_second);
+    auto result =  _muxer->setupRecord(sender, type, start, custom_path, max_second);
+    MediaSourceEventInterceptor::onReaderChanged(sender, totalReaderCount());
+    return result;
 }
 
 bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type) {

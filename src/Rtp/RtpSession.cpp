@@ -72,7 +72,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
     }
     if (len > 1024 * rtpPacketMaxLength) {
         _search_rtp = true;
-        WarnL << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖，开始搜索ssrc以便恢复上下文";
+        WarnL << "stream: " << _stream_id << ", " << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖，开始搜索ssrc以便恢复上下文";
         return;
     }
 
@@ -91,7 +91,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
     try {
         _process->inputRtp(false, getSock(), data, len, &addr);
     } catch (RtpReceiver::BadRtpException &ex) {
-        WarnL << ex.what() << "，开始搜索ssrc以便恢复上下文";
+        WarnL << "stream: " << _stream_id << ", " << ex.what() << "，开始搜索ssrc以便恢复上下文";
         _search_rtp = true;
     } catch (...) {
         throw;
@@ -157,7 +157,7 @@ const char *RtpSession::onSearchPacketTail(const char *data, size_t len) {
     //两个ssrc的间隔正好等于rtp的长度(外加rtp长度字段)，那么说明找到rtp
     auto ssrc_offset = ssrc_ptr1 - ssrc_ptr0;
     if (ssrc_offset == rtp_len + 2 || ssrc_offset == rtp_len + 4) {
-        InfoL << "rtp搜索成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
+        InfoL << "stream: " << _stream_id << ", "<< "rtp搜索成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
         _search_rtp_finished = true;
         //前面的数据都需要丢弃，这个是rtp的起始
         return rtp_len_ptr;
