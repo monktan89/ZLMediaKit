@@ -259,7 +259,7 @@ static inline string getProxyKey(const string &vhost,const string &app,const str
 Value makeMediaSourceJson(MediaSource &media){
     Value item;
     item["schema"] = media.getSchema();
-    item["vhost"] = media.getVhost();
+    item[VHOST_KEY] = media.getVhost();
     item["app"] = media.getApp();
     item["stream"] = media.getId();
     item["createStamp"] = (Json::UInt64) media.getCreateStamp();
@@ -270,6 +270,8 @@ Value makeMediaSourceJson(MediaSource &media){
     item["originType"] = (int) media.getOriginType();
     item["originTypeStr"] = getOriginTypeString(media.getOriginType());
     item["originUrl"] = media.getOriginUrl();
+    item["isRecordingMP4"] = media.isRecording(Recorder::type_mp4);
+    item["isRecordingHLS"] = media.isRecording(Recorder::type_hls);
     auto originSock = media.getOriginSock();
     if (originSock) {
         item["originSock"]["local_ip"] = originSock->get_local_ip();
