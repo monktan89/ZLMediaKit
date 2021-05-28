@@ -317,7 +317,7 @@ void RtmpPusher::onStreamFreeze(bool is_freeze) {
     auto src = _publish_src.lock();
     if(is_freeze && src) {
         std::string key = src->getVhost()+ "/" + src->getApp() + "/" + src->getId();
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcaseProxyPusherNoneReader, key);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherNoneReader, key);
     }
 }
 

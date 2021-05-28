@@ -16,6 +16,7 @@
 #include "Util/mini.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
+#include "eventType.h"
 
 using namespace std;
 using namespace toolkit;
@@ -71,12 +72,16 @@ extern const string kBroadcastRecordHls;
 #define BroadcastRecordHlsArgs const HlsInfo &info
 
 //转推流失败后广播
-extern const string kBroadcaseProxyPusherFailed;
+extern const string kBroadcastProxyPusherFailed;
 #define BroadcaseProxyPusherFailedArgs const ProxyPusherInfo &info
 
 //转推流无人观看广播
-extern const string kBroadcaseProxyPusherNoneReader;
+extern const string kBroadcastProxyPusherNoneReader;
 #define BroadcaseProxyPusherNoneReaderArgs const std::string& key
+
+//事件上报，上报关键事件
+extern const string kBroadcastEventReport;
+#define BroadcastEventReportArgs const string& stream_id, const string& app, const uint16_t event_type
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;

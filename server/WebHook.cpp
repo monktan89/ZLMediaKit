@@ -48,6 +48,7 @@ const string kAdminParams = HOOK_FIELD"admin_params";
 const string kOnRecordHls = HOOK_FIELD"on_record_hls";
 const string kOnProxyPusherFailed = HOOK_FIELD"on_proxy_pusher_failed";
 const string kOnProxyPusherNoneReader = HOOK_FIELD"on_proxy_pusher_none_reader";
+const string kOnEventReport = HOOK_FIELD"on_event_report";
 
 onceToken token([](){
     mINI::Instance()[kEnable] = false;
@@ -69,6 +70,7 @@ onceToken token([](){
     mINI::Instance()[kOnRecordHls] = "";
     mINI::Instance()[kOnProxyPusherFailed] = "";
     mINI::Instance()[kOnProxyPusherNoneReader] = "";
+    mINI::Instance()[kOnEventReport] = "";
     mINI::Instance()[kAdminParams] = "secret=035c73f7-bb6b-4889-a715-d9eb2d1925cc";
 },nullptr);
 }//namespace Hook
@@ -214,7 +216,7 @@ void installWebHook(){
     });
 
     //转推流失败后广播
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcaseProxyPusherFailed, [](BroadcaseProxyPusherFailedArgs){
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherFailed, [](BroadcaseProxyPusherFailedArgs){
         GET_CONFIG(string,hook_proxy_pusher_failed,Hook::kOnProxyPusherFailed);
         if(!hook_enable || hook_proxy_pusher_failed.empty()){
             return;
@@ -227,7 +229,8 @@ void installWebHook(){
         do_http_hook(hook_proxy_pusher_failed, body, nullptr);
     });
 
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcaseProxyPusherNoneReader, [](BroadcaseProxyPusherNoneReaderArgs){
+    //转推流无人观看
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherNoneReader, [](BroadcaseProxyPusherNoneReaderArgs){
         GET_CONFIG(string,hook_proxy_pusher_none_reader,Hook::kOnProxyPusherNoneReader);
         if(!hook_enable || hook_proxy_pusher_none_reader.empty()){
             return;
@@ -236,10 +239,28 @@ void installWebHook(){
         ArgsType body;
         body["key"] = key;
 
-        InfoL << "Received kBroadcaseProxyPusherNoneReader, Will perform hook, key: " << key;
+        InfoL << "Received kBroadcastProxyPusherNoneReader, Will perform hook, key: " << key;
 
         //执行hook
         do_http_hook(hook_proxy_pusher_none_reader, body, nullptr);
+    });
+
+    //上报用户关注的事件点
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastEventReport, [](BroadcastEventReportArgs){
+        GET_CONFIG(string,hook_event_report,Hook::kOnEventReport);
+        if(!hook_enable || hook_event_report.empty()){
+            return;
+        }
+
+        ArgsType body;
+        body["stream_id"] = stream_id;
+        body["app"] = app;
+        body["event_type"] = event_type;
+
+        InfoL << "Received kBroadcastEventReport, type: " << event_type;
+
+        //执行hook
+        do_http_hook(hook_event_report, body, nullptr);
     });
 
     NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastMediaPublish,[](BroadcastMediaPublishArgs){

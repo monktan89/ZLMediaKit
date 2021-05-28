@@ -639,7 +639,7 @@ void installWebApi() {
             ProxyPusherInfo info;
             info.key = key;
             info.proxy_pusher_url = url;
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcaseProxyPusherFailed, info);
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, info);
         });
         //设置发布结果处理逻辑
         pusher->setOnPublished([poller,schema,vhost, app, stream, url, cb, key](const SockException &ex) {
@@ -654,7 +654,7 @@ void installWebApi() {
                 ProxyPusherInfo info;
                 info.key = key;
                 info.proxy_pusher_url = url;
-                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcaseProxyPusherFailed, info);
+                NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, info);
             }
             cb(ex, key);
         });
