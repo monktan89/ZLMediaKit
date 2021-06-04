@@ -104,6 +104,7 @@ int MultiMuxerPrivate::totalReaderCount() const {
            (_ts ? _ts->readerCount() : 0) +
 #if defined(ENABLE_MP4)
            (_fmp4 ? _fmp4->readerCount() : 0) +
+            (_mp4 ? 1 : 0) +
 #endif
            (hls_record ? 1 : 0) +
            (hls ? hls->readerCount() : 0);
