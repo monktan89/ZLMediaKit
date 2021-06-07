@@ -38,6 +38,17 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     sendResponse(200, true);
 }
 
+void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len){
+    KeyValue header;
+    header.emplace("Allow", "GET, POST, HEAD, OPTIONS");
+    header.emplace("Access-Control-Allow-Origin", "*");
+    header.emplace("Access-Control-Allow-Headers", "*");
+    header.emplace("Access-Control-Allow-Credentials", "true");
+    header.emplace("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS");
+    header.emplace("Access-Control-Request-Headers","Accept,Accept-Language,Content-Language,Content-Type");
+    sendResponse(200, true, nullptr, header);
+}
+
 ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
     typedef void (HttpSession::*HttpCMDHandle)(ssize_t &);
     static unordered_map<string, HttpCMDHandle> s_func_map;
@@ -45,6 +56,7 @@ ssize_t HttpSession::onRecvHeader(const char *header,size_t len) {
         s_func_map.emplace("GET",&HttpSession::Handle_Req_GET);
         s_func_map.emplace("POST",&HttpSession::Handle_Req_POST);
         s_func_map.emplace("HEAD",&HttpSession::Handle_Req_HEAD);
+        s_func_map.emplace("OPTIONS",&HttpSession::Handle_Req_OPTIONS);
     }, nullptr);
 
     _parser.Parse(header);

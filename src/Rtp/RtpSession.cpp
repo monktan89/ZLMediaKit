@@ -54,7 +54,7 @@ void RtpSession::onError(const SockException &err) {
         if (errMsg.find("end of file") != std::string::npos) {
             type = StreamDropped_Normal;
         }else if (errMsg.find("receive rtp timeout") != std::string::npos) {
-            type = StreamDropped_RecvTimeout;
+            type = StreamDropped_ReceiveRtpTimeout;
         }else if (errMsg.find("ssrc未获取到") != std::string::npos) {
             type = StreamDropped_Anomaly;
         }
