@@ -412,6 +412,10 @@ void operator delete(void *ptr) {
     free(ptr);
 }
 
+void operator delete(void *ptr, std::size_t) {
+    free(ptr);
+}
+
 void *operator new[](std::size_t size) {
     auto ret = malloc(size);
     if (ret) {
@@ -421,6 +425,10 @@ void *operator new[](std::size_t size) {
 }
 
 void operator delete[](void *ptr) {
+    free(ptr);
+}
+
+void operator delete[](void *ptr, std::size_t) {
     free(ptr);
 }
 #endif
