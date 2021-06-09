@@ -86,6 +86,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
         }else if(*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             // 播放失败，延时重试播放
             strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
+        } else {
+            // 达到了最大重试次数，回调关闭
+            strongSelf->_on_play(SockException(Err_shutdown, "reaches the maximum number of retries!"));
         }
     });
     setOnShutdown([weakSelf,strUrlTmp,piFailedCnt](const SockException &err) {
@@ -113,6 +116,9 @@ void PlayerProxy::play(const string &strUrlTmp) {
         //播放异常中断，延时重试播放
         if(*piFailedCnt < strongSelf->_retry_count || strongSelf->_retry_count < 0) {
             strongSelf->rePlay(strUrlTmp,(*piFailedCnt)++);
+        } else {
+            // 达到最大重试次数，关闭
+            strongSelf->_on_close();
         }
     });
     MediaPlayer::play(strUrlTmp);
