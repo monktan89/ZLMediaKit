@@ -746,7 +746,7 @@ void installWebApi() {
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
         player->setPlayCallbackOnce([cb,key](const SockException &ex){
             if(ex){
-                ErrorL << "key: " << key << ", " << "addStreamProxy play callback error: " << ex.what();
+                InfoL << "key: " << key << ", " << "addStreamProxy play callback error: " << ex.what();
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
                 s_proxyMap.erase(key);
             }
@@ -754,8 +754,8 @@ void installWebApi() {
         });
 
         //被主动关闭拉流
-        player->setOnClose([key](){
-            InfoL << "key: " << key << ", " << "addStreamProxy close callback.";
+        player->setOnClose([key](const SockException &ex){
+            InfoL << "key: " << key << ", " << "addStreamProxy close callback error: " << ex.what();
             lock_guard<recursive_mutex> lck(s_proxyMapMtx);
             s_proxyMap.erase(key);
         });
