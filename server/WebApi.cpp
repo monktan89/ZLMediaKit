@@ -723,6 +723,7 @@ void installWebApi() {
                                     bool enable_mp4,
                                     int rtp_type,
                                     float timeoutSec,
+                                    int retryCount,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -731,8 +732,10 @@ void installWebApi() {
             cb(SockException(Err_success),key);
             return;
         }
-        //添加拉流代理
-        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4));
+        //添加拉流代理，默认重试三次
+        int retry_count = 3;
+        if (retryCount != 0) retry_count = retryCount;
+        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count));
         s_proxyMap[key] = player;
         
         //指定RTP over TCP(播放rtsp时有效)
@@ -795,6 +798,7 @@ void installWebApi() {
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
                        allArgs["timeout_sec"],
+                       allArgs["retry_count"],
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if (ex) {
                                val["code"] = API::OtherFailed;
@@ -1294,6 +1298,7 @@ void installWebApi() {
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
                        10,//10秒超时
+                       -1,
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if(ex){
                                val["code"] = API::OtherFailed;
