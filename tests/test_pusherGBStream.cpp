@@ -15,9 +15,8 @@ using namespace std;
 using namespace toolkit;
 using namespace mediakit;
 
-//推流器，保持强引用
-MediaPusher::Ptr pusher;
 Timer::Ptr g_timer;
+MediaSource::Ptr g_src;
 
 struct RTPRemoteInfo {
     bool is_udp;
@@ -52,9 +51,12 @@ void createPusher(const EventPoller::Ptr &poller,
                   const string &stream,
                   const string &filePath,
                   const RTPRemoteInfo &info) {
-    //不限制APP名，并且指定文件绝对路径
-    auto src = MediaSource::createFromMP4(schema, vhost, app, stream, filePath, false);
-    if(!src){
+    if (!g_src) {
+        //不限制APP名，并且指定文件绝对路径
+        g_src = MediaSource::createFromMP4(schema, vhost, app, stream, filePath, false);
+    }
+
+    if (!g_src) {
         //文件不存在
         WarnL << "MP4文件不存在:" << filePath;
         return;
@@ -62,15 +64,15 @@ void createPusher(const EventPoller::Ptr &poller,
 
     std::this_thread::sleep_for(std::chrono::seconds(3));
 
-    WarnL << "开始发送rtp";
+    InfoL << "开始推送国标流...";
 
-    src->startSendRtp(info.dst_url, info.dst_port, std::to_string(info.ssrc), info.is_udp, info.src_port, [poller,schema,vhost,app,stream,filePath, info](uint16_t local_port, const SockException &ex){
+    g_src->startSendRtp(info.dst_url, info.dst_port, std::to_string(info.ssrc), info.is_udp, info.src_port, [poller,schema,vhost,app,stream,filePath, info](uint16_t local_port, const SockException &ex){
         if (ex) {
-            WarnL << "Publish rtp fail:" << ex.getErrCode() << " " << ex.what();
+            ErrorL << "Publish gb28181 rtp fail: " << ex.getErrCode() << " " << ex.what();
             //如果发布失败，就重试
             rePushDelay(poller,schema,vhost,app, stream, filePath, info);
         }
-        InfoL << "push rtp success.";
+        InfoL << "push gb28181 rtp success.";
     });
 }
 
@@ -93,6 +95,13 @@ void rePushDelay(const EventPoller::Ptr &poller,
 
 //这里才是真正执行main函数，你可以把函数名(domain)改成main，然后就可以输入自定义url了
 int domain(const string & filePath, const RTPRemoteInfo& info){
+    //循环点播mp4文件
+    mINI::Instance()[Record::kFileRepeat] = 1;
+    //mINI::Instance()[General::kHlsDemand] = 1;
+    //mINI::Instance()[General::kTSDemand] = 1;
+    //mINI::Instance()[General::kFMP4Demand] = 1;
+    //mINI::Instance()[General::kRtspDemand] = 1;
+    //mINI::Instance()[General::kRtmpDemand] = 1;
 
     auto poller = EventPollerPool::Instance().getPoller();
     //vhost/app/stream可以随便自己填，现在不限制app应用名了
@@ -102,11 +111,10 @@ int domain(const string & filePath, const RTPRemoteInfo& info){
     static semaphore sem;
     signal(SIGINT, [](int) { sem.post(); });// 设置退出信号
     sem.wait();
-    pusher.reset();
     g_timer.reset();
+    g_src.reset();
     return 0;
 }
-
 
 int main(int argc,char *argv[])
 {

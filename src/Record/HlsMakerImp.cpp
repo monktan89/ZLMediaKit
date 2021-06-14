@@ -157,7 +157,6 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char 
     }
 
 	auto hls = makeRecordM3u8(_path_hls, mode);
-
     if (hls) {
         fwrite(header, hlen, 1, hls.get());
         if (exist) {
@@ -170,11 +169,8 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char 
             _media_src->registHls(true);
         }
     } else {
-        WarnL << "create hls file falied, " << _path_hls << " " <<  get_uv_errmsg();
+        WarnL << "create hls file failed, " << _path_hls << " " <<  get_uv_errmsg();
     }
-
-    //DebugL << "\r\n"  << string(body, blen);
-    //DebugL << "_path_hls: "  << _path_hls;
 }
 
 void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {

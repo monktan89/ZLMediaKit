@@ -61,20 +61,21 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 void RtpSession::onError(const SockException &err) {
     WarnL << _stream_id << " " << err.what();
 
-    if (!_stream_id.empty()) {
+    // 断流事件上报，用于统计
+    if (!_stream_id.empty() && _stream_id != "00000000" && _stream_id != "B1000000" ){
         EventType type = None;
         std::string errMsg = err.what();
         if (errMsg.find("end of file") != std::string::npos) {
             type = StreamDropped_Normal;
-        }else if (errMsg.find("receive rtp timeout") != std::string::npos) {
-            type = StreamDropped_ReceiveRtpTimeout;
-        }else if (errMsg.find("ssrc未获取到") != std::string::npos) {
+        } else if (errMsg.find("receive rtp timeout") != std::string::npos) {
+            type = StreamDropped_RtpTimeout;
+        } else if (errMsg.find("ssrc未获取到") != std::string::npos) {
             type = StreamDropped_Anomaly;
+        } else {
+            type = StreamDropped_OtherError;
         }
 
-        if (type != None) {
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, _stream_id, "rtp", type);
-        }
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, _stream_id, "rtp", type, errMsg);
     }
 }
 
