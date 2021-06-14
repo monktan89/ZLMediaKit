@@ -73,11 +73,11 @@ extern const string kBroadcastRecordHls;
 
 //转推流失败后广播
 extern const string kBroadcastProxyPusherFailed;
-#define BroadcaseProxyPusherFailedArgs const ProxyPusherInfo &info
+#define BroadcastProxyPusherFailedArgs const std::string& key, const string& dstUrl, const string& details
 
 //转推流无人观看广播
 extern const string kBroadcastProxyPusherNoneReader;
-#define BroadcaseProxyPusherNoneReaderArgs const std::string& key
+#define BroadcastProxyPusherNoneReaderArgs const std::string& key
 
 //事件上报，上报关键事件
 extern const string kBroadcastEventReport;

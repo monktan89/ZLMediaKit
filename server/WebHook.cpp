@@ -216,21 +216,22 @@ void installWebHook(){
     });
 
     //转推流失败后广播
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherFailed, [](BroadcaseProxyPusherFailedArgs){
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherFailed, [](BroadcastProxyPusherFailedArgs){
         GET_CONFIG(string,hook_proxy_pusher_failed,Hook::kOnProxyPusherFailed);
         if(!hook_enable || hook_proxy_pusher_failed.empty()){
             return;
         }
         ArgsType body;
-        body["key"] = info.key;
-        body["proxy_pusher_url"] = encodeBase64(info.proxy_pusher_url);
+        body["key"] = key;
+        body["dst_url"] = encodeBase64(dstUrl);
+        body["msg"] = details;
 
         //执行hook
         do_http_hook(hook_proxy_pusher_failed, body, nullptr);
     });
 
     //转推流无人观看
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherNoneReader, [](BroadcaseProxyPusherNoneReaderArgs){
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherNoneReader, [](BroadcastProxyPusherNoneReaderArgs){
         GET_CONFIG(string,hook_proxy_pusher_none_reader,Hook::kOnProxyPusherNoneReader);
         if(!hook_enable || hook_proxy_pusher_none_reader.empty()){
             return;

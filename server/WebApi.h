@@ -126,10 +126,4 @@ void installWebApi();
 void unInstallWebApi();
 Value makeMediaSourceJson(MediaSource &media);
 
-class ProxyPusherInfo {
-public:
-    string key; //流id的key
-    string proxy_pusher_url;//转推地址
-};
-
 #endif //ZLMEDIAKIT_WEBAPI_H
