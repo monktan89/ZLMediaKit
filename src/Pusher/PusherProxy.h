@@ -19,7 +19,7 @@ using namespace toolkit;
 
 namespace mediakit {
 
-class PusherProxy : public MediaPusher, /* public MediaSourceEvent, */ public std::enable_shared_from_this<PusherProxy> {
+class PusherProxy : public MediaPusher, public std::enable_shared_from_this<PusherProxy> {
 public:
     typedef std::shared_ptr<PusherProxy> Ptr;
 
