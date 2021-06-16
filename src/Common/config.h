@@ -81,7 +81,7 @@ extern const string kBroadcastProxyPusherNoneReader;
 
 //事件上报，上报关键事件
 extern const string kBroadcastEventReport;
-#define BroadcastEventReportArgs const string& stream_id, const string& app, const uint16_t event_type, const string& details
+#define BroadcastEventReportArgs const string& app, const string& stream_id, const uint16_t event_type, const string& details
 
 //收到http api请求广播
 extern const string kBroadcastHttpRequest;

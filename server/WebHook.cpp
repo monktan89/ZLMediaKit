@@ -253,13 +253,14 @@ void installWebHook(){
             return;
         }
 
+        InfoL << "Received kBroadcastEventReport, type: " << event_type
+            << ", app: " << app << ", stream: " << stream_id << " , msg: " << details;
+
         ArgsType body;
         body["stream_id"] = stream_id;
         body["app"] = app;
         body["event_type"] = event_type;
         body["msg"] = details;
-
-        InfoL << "Received kBroadcastEventReport, type: " << event_type << " , msg: " << details;
 
         //执行hook
         do_http_hook(hook_event_report, body, nullptr);

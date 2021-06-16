@@ -65,7 +65,8 @@ void RtpSession::onError(const SockException &err) {
     if (!_stream_id.empty() && _stream_id != "00000000" && _stream_id != "B1000000" ){
         EventType type = None;
         std::string errMsg = err.what();
-        if (errMsg.find("end of file") != std::string::npos) {
+        if (errMsg.find("end of file") != std::string::npos ||
+            errMsg.find("close media") != std::string::npos) {
             type = StreamDropped_Normal;
         } else if (errMsg.find("receive rtp timeout") != std::string::npos) {
             type = StreamDropped_RtpTimeout;
@@ -75,7 +76,8 @@ void RtpSession::onError(const SockException &err) {
             type = StreamDropped_OtherError;
         }
 
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, _stream_id, "rtp", type, errMsg);
+        std::string appName = "rtp";
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, appName, _stream_id, type, errMsg);
     }
 }
 
