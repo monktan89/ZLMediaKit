@@ -13,13 +13,10 @@
 #include <signal.h>
 #include <functional>
 #include <unordered_map>
-#include "jsoncpp/json.h"
 #include "Util/util.h"
 #include "Util/logger.h"
 #include "Util/onceToken.h"
 #include "Util/NoticeCenter.h"
-#include "Pusher/MediaPusher.h"
-
 #ifdef ENABLE_MYSQL
 #include "Util/SqlPool.h"
 #endif //ENABLE_MYSQL
@@ -40,9 +37,7 @@
 #if defined(ENABLE_RTPPROXY)
 #include "Rtp/RtpServer.h"
 #endif
-#include "Util/base64.h"
 
-using namespace Json;
 using namespace toolkit;
 using namespace mediakit;
 
@@ -237,15 +232,15 @@ static inline void addHttpListener(){
 }
 
 //拉流代理器列表
-static unordered_map<string ,PlayerProxy::Ptr> s_proxyMap;
+static unordered_map<string, PlayerProxy::Ptr> s_proxyMap;
 static recursive_mutex s_proxyMapMtx;
 
 //推流代理器列表
-static unordered_map<string ,PusherProxy::Ptr> s_proxyPusherMap;
+static unordered_map<string, PusherProxy::Ptr> s_proxyPusherMap;
 static recursive_mutex s_proxyPusherMapMtx;
 
 //FFmpeg拉流代理器列表
-static unordered_map<string ,FFmpegSource::Ptr> s_ffmpegMap;
+static unordered_map<string, FFmpegSource::Ptr> s_ffmpegMap;
 static recursive_mutex s_ffmpegMapMtx;
 
 #if defined(ENABLE_RTPPROXY)
@@ -254,8 +249,13 @@ static unordered_map<string, RtpServer::Ptr> s_rtpServerMap;
 static recursive_mutex s_rtpServerMapMtx;
 #endif
 
-static inline string getProxyKey(const string &vhost,const string &app,const string &stream){
+static inline string getProxyKey(const string &vhost, const string &app, const string &stream) {
     return vhost + "/" + app + "/" + stream;
+}
+
+static inline string getPusherKey(const string &schema, const string &vhost, const string &app, const string &stream,
+                                  const string &dst_url) {
+    return schema + "/" + vhost + "/" + app + "/" + stream + "/" + MD5(dst_url).hexdigest();
 }
 
 Value makeMediaSourceJson(MediaSource &media){
@@ -505,7 +505,6 @@ void installWebApi() {
         }
     });
 
-#if 0
     //批量主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
     api_regist("/index/api/close_streams",[](API_ARGS_MAP){
@@ -540,7 +539,6 @@ void installWebApi() {
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
     });
-#endif
 
     //获取所有TcpSession列表信息
     //可以根据本地端口和远端ip来筛选
@@ -613,44 +611,53 @@ void installWebApi() {
                                           const string &app,
                                           const string &stream,
                                           const string &url,
-                                          int retryCount,
-                                          const function<void(const SockException &ex,const string &key)> &cb){
-        auto key = getProxyKey(vhost,app,stream);
+                                          int retry_count,
+                                          int rtp_type,
+                                          float timeout_sec,
+                                          const function<void(const SockException &ex, const string &key)> &cb) {
+        auto key = getPusherKey(schema, vhost, app, stream, url);
+        auto src = MediaSource::find(schema, vhost, app, stream);
+        if (!src) {
+            cb(SockException(Err_other, "can not find the source stream"), key);
+            return;
+        }
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
-        if(s_proxyPusherMap.find(key) != s_proxyPusherMap.end()){
+        if (s_proxyPusherMap.find(key) != s_proxyPusherMap.end()) {
             //已经在推流了
-            WarnL << "the " << key << "is already pusher.";
-            cb(SockException(Err_success),key);
+            InfoL << url << ", Already pushing";
+            cb(SockException(Err_success), key);
             return;
         }
 
-        auto poller = EventPollerPool::Instance().getPoller();
-        int retry_count = 3;
-        if (retryCount != 0) retry_count = retryCount;
-
+        int real_retry_count = 3;
+        if (retry_count != 0) real_retry_count = retry_count;
         //添加推流代理
-        PusherProxy::Ptr pusher(new PusherProxy(schema,vhost, app, stream, retry_count, poller));
+        PusherProxy::Ptr pusher(new PusherProxy(src, real_retry_count));
         s_proxyPusherMap[key] = pusher;
 
-        //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
-        pusher->setPushCallbackOnce([cb, key, url](const SockException &ex){
-            if(ex){
-                InfoL << "key: " << key << ", " << "addStreamPusherProxy pusher callback error: " << ex.what();
-                lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-                s_proxyMap.erase(key);
-            }
-            cb(ex,key);
+        //指定RTP over TCP(播放rtsp时有效)
+        (*pusher)[kRtpType] = rtp_type;
 
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
+        if (timeout_sec > 0.1) {
+            //推流握手超时时间
+            (*pusher)[kTimeoutMS] = timeout_sec * 1000;
+        }
+
+        //开始推流，如果推流失败或者推流中止，将会自动重试若干次，默认一直重试
+        pusher->setPushCallbackOnce([cb, key, url](const SockException &ex) {
+            if (ex) {
+                WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+                lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+                s_proxyPusherMap.erase(key);
+            }
+            cb(ex, key);
         });
 
         //被主动关闭推流
-        pusher->setOnClose([key, url](const SockException &ex){
-            InfoL << "key: " << key << ", " << "addStreamPusherProxy close callback error: " << ex.what();
-            lock_guard<recursive_mutex> lck(s_proxyMapMtx);
-            s_proxyMap.erase(key);
-
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
+        pusher->setOnClose([key, url](const SockException &ex) {
+            WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
+            lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
+            s_proxyPusherMap.erase(key);
         });
         pusher->publish(url);
     };
@@ -659,50 +666,31 @@ void installWebApi() {
     //测试url http://127.0.0.1/index/api/addStreamPusherProxy?schema=rtmp&vhost=__defaultVhost__&app=proxy&stream=0&dst_url=rtmp://127.0.0.1/live/obs
     api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
-        CHECK_ARGS("schema","vhost","app","stream");
-
-        InfoL << allArgs["schema"] << ", " << allArgs["vhost"] << ", " << allArgs["app"] << ", " << allArgs["stream"];
-
-        //查找源
-        auto src = MediaSource::find(allArgs["schema"],
-                                     allArgs["vhost"],
-                                     allArgs["app"],
-                                     allArgs["stream"]);
-        if(!src){
-            InfoL << "addStreamPusherProxy， canont find source stream!";
-            const_cast<Value &>(val)["code"] = API::OtherFailed;
-            const_cast<Value &>(val)["msg"] = "can not find the source stream";
-            invoker(200, headerOut, val.toStyledString());
-            return;
-        }
-
-        std::string srcUrl = allArgs["schema"] + "://" + "127.0.0.1" + "/" + allArgs["app"] + "/" + allArgs["stream"];
-        std::string pushUrl = decodeBase64(allArgs["dst_url"]);
-        InfoL << "addStreamPusherProxy， find stream: " << srcUrl << ", push dst url: " << pushUrl;
-
+        CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
+        auto dst_url = allArgs["dst_url"];
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
                              allArgs["stream"],
-                             pushUrl,
+                             decodeBase64(allArgs["dst_url"]),
                              allArgs["retry_count"],
-                             [invoker,val,headerOut, pushUrl](const SockException &ex, const string &key){
-                                 if(ex){
-                                     const_cast<Value &>(val)["code"] = API::OtherFailed;
-                                     const_cast<Value &>(val)["msg"] = ex.what();
-                                     InfoL << "Publish error url: " << pushUrl;
-                                 }else{
-                                     const_cast<Value &>(val)["data"]["key"] = key;
-                                     InfoL << "Publish success, Please play with player:" << pushUrl;
+                             allArgs["rtp_type"],
+                             allArgs["timeout_sec"],
+                             [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
+                                 if (ex) {
+                                     val["code"] = API::OtherFailed;
+                                     val["msg"] = ex.what();
+                                 } else {
+                                     val["data"]["key"] = key;
+                                     InfoL << "Publish success, please play with player:" << dst_url;
                                  }
                                  invoker(200, headerOut, val.toStyledString());
                              });
-
     });
 
     //关闭推流代理
     //测试url http://127.0.0.1/index/api/delStreamPusherProxy?key=__defaultVhost__/proxy/0
-    api_regist("/index/api/delStreamPusherProxy",[](API_ARGS_MAP){
+    api_regist("/index/api/delStreamPusherProxy", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("key");
         lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
@@ -713,11 +701,11 @@ void installWebApi() {
                                     const string &app,
                                     const string &stream,
                                     const string &url,
+                                    int retry_count,
                                     bool enable_hls,
                                     bool enable_mp4,
                                     int rtp_type,
-                                    float timeoutSec,
-                                    int retryCount,
+                                    float timeout_sec,
                                     const function<void(const SockException &ex,const string &key)> &cb){
         auto key = getProxyKey(vhost,app,stream);
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
@@ -726,24 +714,25 @@ void installWebApi() {
             cb(SockException(Err_success),key);
             return;
         }
-        //添加拉流代理，默认重试三次
-        int retry_count = 3;
-        if (retryCount != 0) retry_count = retryCount;
-        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, retry_count));
+
+        int real_retry_count = 3;
+        if (retry_count != 0) real_retry_count = retry_count;
+        //添加拉流代理
+        PlayerProxy::Ptr player(new PlayerProxy(vhost, app, stream, enable_hls, enable_mp4, real_retry_count));
         s_proxyMap[key] = player;
-        
+
         //指定RTP over TCP(播放rtsp时有效)
         (*player)[kRtpType] = rtp_type;
 
-        if (timeoutSec > 0.1) {
+        if (timeout_sec > 0.1) {
             //播放握手超时时间
-            (*player)[kTimeoutMS] = timeoutSec * 1000;
+            (*player)[kTimeoutMS] = timeout_sec * 1000;
         }
 
         //开始播放，如果播放失败或者播放中止，将会自动重试若干次，默认一直重试
-        player->setPlayCallbackOnce([cb,key](const SockException &ex){
+        player->setPlayCallbackOnce([cb, key, url](const SockException &ex){
             if(ex){
-                InfoL << "key: " << key << ", " << "addStreamProxy play callback error: " << ex.what();
+                WarnL << "Play " << url << " failed, key: " << key << ", err: " << ex.what();
                 lock_guard<recursive_mutex> lck(s_proxyMapMtx);
                 s_proxyMap.erase(key);
             }
@@ -751,8 +740,8 @@ void installWebApi() {
         });
 
         //被主动关闭拉流
-        player->setOnClose([key](const SockException &ex){
-            InfoL << "key: " << key << ", " << "addStreamProxy close callback error: " << ex.what();
+        player->setOnClose([key, url](const SockException &ex){
+            WarnL << "Play " << url << " failed, key: " << key << ", err: " << ex.what();
             lock_guard<recursive_mutex> lck(s_proxyMapMtx);
             s_proxyMap.erase(key);
         });
@@ -788,11 +777,11 @@ void installWebApi() {
                        allArgs["app"],
                        allArgs["stream"],
                        allArgs["url"],
+                       allArgs["retry_count"],
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
                        allArgs["rtp_type"],
                        allArgs["timeout_sec"],
-                       allArgs["retry_count"],
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if (ex) {
                                val["code"] = API::OtherFailed;
@@ -992,7 +981,6 @@ void installWebApi() {
     api_regist("/index/api/pauseRtpCheck", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("stream_id");
-
         //只是暂停流的检查，流媒体服务器做为流负载服务，收流就转发，RTSP/RTMP有自己暂停协议
         auto rtp_process = RtpSelector::Instance().getProcess(allArgs["stream_id"], false);
         if (rtp_process) {
@@ -1201,11 +1189,6 @@ void installWebApi() {
 #endif
     });
 
-	api_regist("/index/api/getPusherProxyNumbers", [](API_ARGS_MAP){
-        CHECK_SECRET();
-        val["count"] = (uint32_t)s_proxyPusherMap.size();
-    });
-
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
         //开始推流事件
@@ -1288,11 +1271,11 @@ void installWebApi() {
                        allArgs["stream"],
                        /** 支持rtsp和rtmp方式拉流 ，rtsp支持h265/h264/aac,rtmp仅支持h264/aac **/
                        "rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov",
+                       -1,/*无限重试*/
                        true,/* 开启hls转发 */
                        false,/* 禁用MP4录制 */
                        0,//rtp over tcp方式拉流
                        10,//10秒超时
-                       -1,
                        [invoker,val,headerOut](const SockException &ex,const string &key) mutable{
                            if(ex){
                                val["code"] = API::OtherFailed;
@@ -1306,10 +1289,6 @@ void installWebApi() {
 
     api_regist("/index/hook/on_record_mp4",[](API_ARGS_MAP){
         //录制mp4分片完毕事件
-    });
-
-    api_regist("/index/hook/on_record_hls",[](API_ARGS_MAP){
-        //录制hls分片完毕事件
     });
 
     api_regist("/index/hook/on_shell_login",[](API_ARGS_MAP){
