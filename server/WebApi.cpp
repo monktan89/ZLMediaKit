@@ -505,6 +505,7 @@ void installWebApi() {
         }
     });
 
+#if 0
     //批量主动关断流，包括关断拉流、推流
     //测试url http://127.0.0.1/index/api/close_streams?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs&force=1
     api_regist("/index/api/close_streams",[](API_ARGS_MAP){
@@ -539,6 +540,7 @@ void installWebApi() {
         val["count_hit"] = count_hit;
         val["count_closed"] = count_closed;
     });
+#endif
 
     //获取所有TcpSession列表信息
     //可以根据本地端口和远端ip来筛选
@@ -651,6 +653,8 @@ void installWebApi() {
                 s_proxyPusherMap.erase(key);
             }
             cb(ex, key);
+			
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
         });
 
         //被主动关闭推流
@@ -658,6 +662,8 @@ void installWebApi() {
             WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
             lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
             s_proxyPusherMap.erase(key);
+			
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
         });
         pusher->publish(url);
     };
@@ -1189,6 +1195,11 @@ void installWebApi() {
 #endif
     });
 
+	api_regist("/index/api/getPusherProxyNumbers", [](API_ARGS_MAP){
+        CHECK_SECRET();
+        val["count"] = (uint32_t)s_proxyPusherMap.size();
+    });
+
     ////////////以下是注册的Hook API////////////
     api_regist("/index/hook/on_publish",[](API_ARGS_MAP){
         //开始推流事件
@@ -1289,6 +1300,10 @@ void installWebApi() {
 
     api_regist("/index/hook/on_record_mp4",[](API_ARGS_MAP){
         //录制mp4分片完毕事件
+    });
+
+    api_regist("/index/hook/on_record_hls",[](API_ARGS_MAP){
+        //录制hls分片完毕事件
     });
 
     api_regist("/index/hook/on_shell_login",[](API_ARGS_MAP){
