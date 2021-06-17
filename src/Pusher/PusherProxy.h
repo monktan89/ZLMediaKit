@@ -67,6 +67,4 @@ private:
 
 } /* namespace mediakit */
 
-
-
 #endif //SRC_DEVICE_PUSHERPROXY_H
