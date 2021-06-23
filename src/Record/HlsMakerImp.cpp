@@ -24,11 +24,12 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
                          float seg_duration,
                          uint32_t seg_number,
                          uint32_t record_type) : HlsMaker(seg_duration, seg_number, record_type) {
+    _poller = EventPollerPool::Instance().getPoller();
     _path_prefix = m3u8_file.substr(0, m3u8_file.rfind('/'));
     _path_hls = m3u8_file;
     _params = params;
     _buf_size = bufSize;
-    _file_buf.reset(new char[bufSize], [](char *ptr){
+    _file_buf.reset(new char[bufSize], [](char *ptr) {
         delete[] ptr;
     });
 
@@ -43,32 +44,43 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 
 HlsMakerImp::~HlsMakerImp() {
     InfoL << "destroy HlsMakerImp, this: " << (long)this;
-    clearCache();
+    clearCache(false, false);
 }
 
-void HlsMakerImp::clearCache(bool isFirst) {
+void HlsMakerImp::clearCache(bool isFirst, bool immediately) {
     InfoL << "isLive: " << isLive();
     //录制完了
     flushLastSegment(true);
-    if (isLive()){
-        //hls直播才删除文件
-        clear();
-        _file = nullptr;
-        _segment_file_paths.clear();
-        File::delete_file(_path_prefix.data());
-    }else{
+    if (!isLive()) {
         if (isFirst) return; //第一次创建清除cache不需要上报
-    	//hook接口
-    	 HlsInfo info;
-    	if (_media_src) {
-			info.strAppName = _media_src.get()->getApp();
-			info.strStreamId = _media_src.get()->getId();
-			info.strFilePath = _path_hls;
-			info.ui64StartedTime = _ui64StartedTime;
-			info.ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
-    	}
+        //hook接口
+        HlsInfo info;
+        if (_media_src) {
+            info.strAppName = _media_src.get()->getApp();
+            info.strStreamId = _media_src.get()->getId();
+            info.strFilePath = _path_hls;
+            info.ui64StartedTime = _ui64StartedTime;
+            info.ui64TimeLen = ::time(NULL) - info.ui64StartedTime;
+        }
 
-    	NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordHls, info);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastRecordHls, info);
+        return;
+    }
+
+    clear();
+    _file = nullptr;
+    _segment_file_paths.clear();
+
+    //hls直播才删除文件
+    GET_CONFIG(uint32_t, delay, Hls::kDeleteDelaySec);
+    if (!delay || immediately) {
+        File::delete_file(_path_prefix.data());
+    } else {
+        auto path_prefix = _path_prefix;
+        _poller->doDelayTask(delay * 1000, [path_prefix]() {
+            File::delete_file(path_prefix.data());
+            return 0;
+        });
     }
 }
 
@@ -79,12 +91,11 @@ string HlsMakerImp::onOpenSegment(uint64_t index) {
         auto strHour = getTimeStr("%H");
         auto strTime = getTimeStr("%M-%S");
         segment_name = StrPrinter << strDate + "/" + strHour + "/" + strTime << "_" << index << ".ts";
-        segment_path = _path_prefix + "/" +  segment_name;
-        if (isLive()){
-            _segment_file_paths.emplace(index,segment_path);
+        segment_path = _path_prefix + "/" + segment_name;
+        if (isLive()) {
+            _segment_file_paths.emplace(index, segment_path);
         }
     }
-
     _file = makeFile(segment_path, true);
 
     //保存本切片的元数据
@@ -144,7 +155,7 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
     if (ret && setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }
-	
+
     return ret;
 }
 
@@ -186,15 +197,13 @@ void HlsMakerImp::onFlushLastSegment(uint32_t duration_ms) {
     }
 }
 
-std::shared_ptr<FILE> HlsMakerImp::makeRecordM3u8(const string &file,const string &mode,bool setbuf) {
+std::shared_ptr<FILE> HlsMakerImp::makeRecordM3u8(const string &file, const string &mode, bool setbuf) {
     auto file_buf = _file_buf;
-
     auto ret= shared_ptr<FILE>(File::create_file(file.data(), mode.data()), [file_buf](FILE *fp) {
         if (fp) {
             fclose(fp);
         }
     });
-
     if (ret && setbuf) {
         setvbuf(ret.get(), _file_buf.get(), _IOFBF, _buf_size);
     }

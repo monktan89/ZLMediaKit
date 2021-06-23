@@ -56,8 +56,9 @@ public:
 
      /**
       * 清空缓存
+      * @param immediately 时候立即删除
       */
-     void clearCache(bool isFirst = false);
+     void clearCache(bool isFirst = false, bool immediately = true);
 
 protected:
     string onOpenSegment(uint64_t index) override ;
@@ -68,8 +69,8 @@ protected:
     void onFlushLastSegment(uint32_t duration_ms) override;
 
 private:
-    std::shared_ptr<FILE> makeFile(const string &file,bool setbuf = false);
-    std::shared_ptr<FILE> makeRecordM3u8(const string &file,const string &mode,bool setbuf = false);
+    std::shared_ptr<FILE> makeFile(const string &file, bool setbuf = false);
+    std::shared_ptr<FILE> makeRecordM3u8(const string &file, const string &mode, bool setbuf = false);
 
 private:
     int _buf_size;
@@ -80,6 +81,7 @@ private:
     std::shared_ptr<FILE> _file;
     std::shared_ptr<char> _file_buf;
     HlsMediaSource::Ptr _media_src;
+    EventPoller::Ptr _poller;
     map<uint64_t /*index*/,string/*file_path*/> _segment_file_paths;
     time_t _ui64StartedTime;
 };
