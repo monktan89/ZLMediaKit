@@ -653,8 +653,6 @@ void installWebApi() {
                 s_proxyPusherMap.erase(key);
             }
             cb(ex, key);
-			
-			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
         });
 
         //被主动关闭推流
@@ -662,8 +660,9 @@ void installWebApi() {
             WarnL << "Push " << url << " failed, key: " << key << ", err: " << ex.what();
             lock_guard<recursive_mutex> lck(s_proxyPusherMapMtx);
             s_proxyPusherMap.erase(key);
-			
-			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, ex.what());
+
+            std::string errMsg = ex.what();
+			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, errMsg);
         });
         pusher->publish(url);
     };
@@ -673,7 +672,7 @@ void installWebApi() {
     api_regist("/index/api/addStreamPusherProxy", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
-        auto dst_url = allArgs["dst_url"];
+        auto dst_url = decodeBase64(allArgs["dst_url"]);
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
