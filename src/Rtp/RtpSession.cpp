@@ -124,7 +124,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
     }
     try {
         _process->inputRtp(false, getSock(), data, len, &_addr);
-    } catch (RtpReceiver::BadRtpException &ex) {
+    } catch (RtpTrack::BadRtpException &ex) {
         if (!_is_udp) {
             WarnL << "stream: " << _stream_id << ", " << ex.what() << "，开始搜索ssrc以便恢复上下文";
             _search_rtp = true;
