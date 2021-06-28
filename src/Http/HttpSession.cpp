@@ -37,6 +37,12 @@ void HttpSession::Handle_Req_HEAD(ssize_t &content_len){
     //对于按需生成流的直播场景并不适用
     sendResponse(200, true);
 }
+    
+void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len)
+{
+    //暂时对OPTINS进行200 OK回复
+    sendResponse(200, true);
+}
 
 void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len){
     KeyValue header;
