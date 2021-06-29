@@ -1,7 +1,7 @@
 ﻿/*
  * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
  * Use of this source code is governed by MIT license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
@@ -9,7 +9,6 @@
  */
 
 #include <signal.h>
-#include "Util/util.h"
 #include "Util/logger.h"
 #include <iostream>
 #include "Rtsp/UDPServer.h"
@@ -17,8 +16,7 @@
 #include "Util/onceToken.h"
 #include "FFMpegDecoder.h"
 #include "YuvDisplayer.h"
-#include "Extension/H265.h"
-
+#include "AudioSRC.h"
 using namespace std;
 using namespace toolkit;
 using namespace mediakit;
@@ -47,9 +45,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstanc, LPSTR lpCmdLine,
 #else
 #include <unistd.h>
 int main(int argc, char *argv[]) {
-
 #endif
-
     static char *url = argv[1];
     //设置退出信号处理函数
     signal(SIGINT, [](int) { SDLDisplayerHelper::Instance().shutdown(); });
@@ -62,59 +58,57 @@ int main(int argc, char *argv[]) {
                << "例如：./test_player rtsp://admin:123456@127.0.0.1/live/0 0\r\n"
                << endl;
         return 0;
-
     }
 
-    MediaPlayer::Ptr player(new MediaPlayer());
+    auto player = std::make_shared<MediaPlayer>();
+    //sdl要求在main线程初始化
+    auto displayer = std::make_shared<YuvDisplayer>(nullptr, url);
     weak_ptr<MediaPlayer> weakPlayer = player;
-    player->setOnPlayResult([weakPlayer](const SockException &ex) {
+    player->setOnPlayResult([weakPlayer, displayer](const SockException &ex) {
         InfoL << "OnPlayResult:" << ex.what();
         auto strongPlayer = weakPlayer.lock();
         if (ex || !strongPlayer) {
             return;
         }
 
-        auto viedoTrack = strongPlayer->getTrack(TrackVideo, false);
-        if (!viedoTrack) {
-            WarnL << "没有视频!";
-            return;
+        auto videoTrack = dynamic_pointer_cast<VideoTrack>(strongPlayer->getTrack(TrackVideo, false));
+        auto audioTrack = dynamic_pointer_cast<AudioTrack>(strongPlayer->getTrack(TrackAudio,false));
+
+        if (videoTrack) {
+            auto decoder = std::make_shared<FFmpegDecoder>(videoTrack);
+            decoder->setOnDecode([displayer](const FFmpegFrame::Ptr &yuv) {
+                SDLDisplayerHelper::Instance().doTask([yuv, displayer]() {
+                    //sdl要求在main线程渲染
+                    displayer->displayYUV(yuv->get());
+                    return true;
+                });
+            });
+            auto merger = std::make_shared<FrameMerger>(FrameMerger::h264_prefix);
+            auto delegate = std::make_shared<FrameWriterInterfaceHelper>([decoder, merger](const Frame::Ptr &frame) {
+                merger->inputFrame(frame, [&](uint32_t dts, uint32_t pts, const Buffer::Ptr &buffer, bool have_idr) {
+                    decoder->inputFrame(buffer->data(), buffer->size(), dts, pts);
+                });
+            });
+            videoTrack->addDelegate(delegate);
         }
 
-        AnyStorage::Ptr storage(new AnyStorage);
-        viedoTrack->addDelegate(std::make_shared<FrameWriterInterfaceHelper>([storage](const Frame::Ptr &frame_in) {
-            auto frame = Frame::getCacheAbleFrame(frame_in);
-            SDLDisplayerHelper::Instance().doTask([frame,storage]() {
-                auto &decoder = (*storage)["decoder"];
-                auto &displayer = (*storage)["displayer"];
-                auto &merger = (*storage)["merger"];
-                if(!decoder){
-                    decoder.set<FFMpegDecoder>(frame->getCodecId());
-                }
-                if(!displayer){
-                    displayer.set<YuvDisplayer>(nullptr,url);
-                }
-                if(!merger){
-                    merger.set<FrameMerger>(FrameMerger::h264_prefix);
-                }
-                merger.get<FrameMerger>().inputFrame(frame,[&](uint32_t dts,uint32_t pts,const Buffer::Ptr &buffer, bool have_idr){
-                    AVFrame *pFrame = nullptr;
-                    bool flag = decoder.get<FFMpegDecoder>().inputVideo((unsigned char *) buffer->data(), buffer->size(), dts, &pFrame);
-                    if (flag) {
-                        displayer.get<YuvDisplayer>().displayYUV(pFrame);
-                    }
-                });
-                return true;
+        if (audioTrack) {
+            auto decoder = std::make_shared<FFmpegDecoder>(audioTrack);
+            auto audio_player = std::make_shared<AudioPlayer>();
+            //FFmpeg解码时已经统一转换为16位整型pcm
+            audio_player->setup(audioTrack->getAudioSampleRate(), audioTrack->getAudioChannel(), AUDIO_S16);
+            decoder->setOnDecode([audio_player](const FFmpegFrame::Ptr &pcm) {
+                audio_player->playPCM((const char *) (pcm->get()->data[0]), pcm->get()->linesize[0]);
             });
-        }));
+            auto audio_delegate = std::make_shared<FrameWriterInterfaceHelper>( [decoder](const Frame::Ptr &frame) {
+                decoder->inputFrame(frame);
+            });
+            audioTrack->addDelegate(audio_delegate);
+        }
     });
 
-
-    player->setOnShutdown([](const SockException &ex) {
-        ErrorL << "OnShutdown:" << ex.what();
-    });
     (*player)[kRtpType] = atoi(argv[2]);
     player->play(argv[1]);
-
     SDLDisplayerHelper::Instance().runLoop();
     return 0;
 }
