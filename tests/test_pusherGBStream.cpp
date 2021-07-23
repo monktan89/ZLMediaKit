@@ -137,7 +137,7 @@ int main(int argc,char *argv[])
     info.ssrc = 5432678;
     info.dst_port = strtol(argv[3], nullptr, 10);
     info.dst_url = argv[2];
-    info.src_port = 30000;  //默认本地30000端口作为源端口推流
+    //info.src_port = 30000;  //默认本地30000端口作为源端口推流
 
     //可以使用test_server生成的mp4文件
     //文件使用绝对路径，推流url支持rtsp和rtmp
