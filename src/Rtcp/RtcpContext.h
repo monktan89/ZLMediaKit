@@ -68,18 +68,12 @@ public:
     Buffer::Ptr createRtcpRR(uint32_t rtcp_ssrc, uint32_t rtp_ssrc);
 
     /**
-     * 清空状态
-     */
-    void clear();
-
-    /**
      * 获取rtt
      * @param ssrc rtp ssrc
      * @return rtt,单位毫秒
      */
     uint32_t getRtt(uint32_t ssrc) const;
 
-private:
     /**
      * 上次结果与本次结果间应收包数
      */
@@ -122,7 +116,8 @@ private:
     uint32_t _last_sr_lsr = 0;
     //上次收到sr时的系统时间戳,单位毫秒
     uint64_t _last_sr_ntp_sys = 0;
-    unordered_map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
+    map<uint32_t/*ssrc*/, uint32_t/*rtt*/> _rtt;
+    map<uint32_t/*last_sr_lsr*/, uint64_t/*ntp stamp*/> _sender_report_ntp;
 };
 
 }//namespace mediakit
