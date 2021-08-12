@@ -93,7 +93,6 @@ void RtpSession::onManager() {
 
 void RtpSession::onRtpPacket(const char *data, size_t len) {
     if (!_is_udp) {
-        GET_CONFIG(uint32_t, rtpPacketMaxLength, RtpProxy::kRtpPacketMaxLength);
         if (_search_rtp) {
             //搜索上下文期间，数据丢弃
             if (_search_rtp_finished) {
@@ -103,13 +102,13 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
             }
             return;
         }
-        if (len > 1024 * rtpPacketMaxLength) {
+        GET_CONFIG(uint32_t, rtpMaxSize, Rtp::kRtpMaxSize);
+        if (len > 1024 * rtpMaxSize) {
             _search_rtp = true;
             WarnL << "rtp包长度异常(" << len << ")，发送端可能缓存溢出并覆盖，开始搜索ssrc以便恢复上下文";
             return;
         }
     }
-
     if (!_process) {
         if (!RtpSelector::getSSRC(data, len, _ssrc)) {
             return;

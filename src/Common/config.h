@@ -245,6 +245,8 @@ namespace Rtp {
 extern const string kVideoMtuSize;
 //RTP打包最大MTU,公网情况下更小
 extern const string kAudioMtuSize;
+//rtp包最大长度限制, 单位KB
+extern const string kRtpMaxSize;
 } //namespace Rtsp
 
 ////////////组播配置///////////
@@ -299,8 +301,6 @@ namespace RtpProxy {
 extern const string kDumpDir;
 //rtp接收超时时间
 extern const string kTimeoutSec;
-//rtp包最大长度限制，给gb28181 rtp包限制ps包大小, 单位k
-extern const string kRtpPacketMaxLength;
 } //namespace RtpProxy
 
 /**

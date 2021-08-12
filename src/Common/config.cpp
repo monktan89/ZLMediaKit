@@ -196,10 +196,13 @@ namespace Rtp {
 //RTP打包最大MTU,公网情况下更小
 const string kVideoMtuSize = RTP_FIELD"videoMtuSize";
 const string kAudioMtuSize = RTP_FIELD"audioMtuSize";
+//rtp包最大长度限制，单位是KB
+const string kRtpMaxSize = RTP_FIELD"rtpMaxSize";
 
 onceToken token([](){
     mINI::Instance()[kVideoMtuSize] = 1400;
     mINI::Instance()[kAudioMtuSize] = 600;
+    mINI::Instance()[kRtpMaxSize] = 10;
 },nullptr);
 } //namespace Rtsp
 
@@ -286,13 +289,10 @@ namespace RtpProxy {
 const string kDumpDir = RTP_PROXY_FIELD"dumpDir";
 //rtp接收超时时间
 const string kTimeoutSec = RTP_PROXY_FIELD"timeoutSec";
-//rtp包最大长度限制，给gb28181 rtp包限制ps包大小, 单位k
-const string kRtpPacketMaxLength = RTP_PROXY_FIELD"rtpPacketMaxLength";
 
 onceToken token([](){
     mINI::Instance()[kDumpDir] = "";
     mINI::Instance()[kTimeoutSec] = 15;
-    mINI::Instance()[kRtpPacketMaxLength] = 10;
 },nullptr);
 } //namespace RtpProxy
 
