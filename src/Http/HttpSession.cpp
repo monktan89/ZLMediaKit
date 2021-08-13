@@ -101,9 +101,9 @@ void HttpSession::onRecv(const Buffer::Ptr &pBuf) {
 }
 
 void HttpSession::onError(const SockException& err) {
-    if(_is_live_stream){
-        uint64_t duration = _ticker.createdTime()/1000;
+    if (_is_live_stream) {
         //flv/ts播放器
+        uint64_t duration = _ticker.createdTime() / 1000;
         WarnP(this) << "FLV/TS/FMP4播放器("
                     << _mediaInfo._vhost << "/"
                     << _mediaInfo._app << "/"
@@ -111,19 +111,16 @@ void HttpSession::onError(const SockException& err) {
                     << ")断开:" << err.what()
                     << ",耗时(s):" << duration;
 
-        GET_CONFIG(uint32_t,iFlowThreshold,General::kFlowThreshold);
-        if(_total_bytes_usage >= iFlowThreshold * 1024){
-            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage, duration , true, static_cast<SockInfo &>(*this));
+        GET_CONFIG(uint32_t, iFlowThreshold, General::kFlowThreshold);
+        if (_total_bytes_usage >= iFlowThreshold * 1024) {
+            NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastFlowReport, _mediaInfo, _total_bytes_usage,
+                                               duration, true, static_cast<SockInfo &>(*this));
         }
         return;
     }
 
     //http客户端
-    if(_ticker.createdTime() < 10 * 1000){
-        TraceP(this) << err.what();
-    }else{
-        WarnP(this) << err.what();
-    }
+    TraceP(this) << err.what();
 }
 
 void HttpSession::onManager() {
@@ -131,7 +128,7 @@ void HttpSession::onManager() {
 
     if(_ticker.elapsedTime() > keepAliveSec * 1000){
         //1分钟超时
-        shutdown(SockException(Err_timeout,"session timeouted"));
+        shutdown(SockException(Err_timeout,"session timeout"));
     }
 }
 
