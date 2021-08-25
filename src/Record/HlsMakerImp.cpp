@@ -161,10 +161,10 @@ std::shared_ptr<FILE> HlsMakerImp::makeFile(const string &file, bool setbuf) {
 
 void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen){
     bool exist = true;
-    string mode = "r+";
+    string mode = "rb+";
     if (access(_path_hls.c_str(), 0) == -1) {
     	exist = false;
-    	 mode = "w+";
+    	 mode = "wb+";
     }
 
 	auto hls = makeRecordM3u8(_path_hls, mode);
