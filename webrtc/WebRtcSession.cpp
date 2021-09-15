@@ -67,7 +67,9 @@ void WebRtcSession::onRecv_l(const Buffer::Ptr &buffer) {
     }
     _ticker.resetTime();
     CHECK(_transport);
-    _transport->inputSockData(buffer->data(), buffer->size(), &_peer_addr);
+    //先增加引用技术，防止使用transport时，触发onError事件导致对象释放
+    auto transport = _transport;
+    transport->inputSockData(buffer->data(), buffer->size(), &_peer_addr);
 }
 
 void WebRtcSession::onError(const SockException &err) {
@@ -75,6 +77,8 @@ void WebRtcSession::onError(const SockException &err) {
     //在udp链接迁移时，新的WebRtcSession对象将接管WebRtcTransport对象的生命周期
     //本WebRtcSession对象将在超时后自动销毁
     WarnP(this) << err.what();
+    //取消循环引用
+    _transport = nullptr;
 }
 
 void WebRtcSession::onManager() {
