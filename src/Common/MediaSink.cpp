@@ -10,11 +10,11 @@
 
 #include "MediaSink.h"
 
-//最多等待未初始化的Track 10秒，超时之后会忽略未初始化的Track
-static size_t constexpr kMaxWaitReadyMS= 10000;
+//最多等待未初始化的Track 3秒，超时之后会忽略未初始化的Track
+static size_t constexpr kMaxWaitReadyMS= 3000;
 
-//如果直播流只有单Track，最多等待3秒，超时后未收到其他Track的数据，则认为是单Track
-static size_t constexpr kMaxAddTrackMS = 3000;
+//如果直播流只有单Track，最多等待2秒，超时后未收到其他Track的数据，则认为是单Track
+static size_t constexpr kMaxAddTrackMS = 2000;
 
 //如果track未就绪，我们先缓存帧数据，但是有最大个数限制(100帧时大约4秒)，防止内存溢出
 static size_t constexpr kMaxUnreadyFrame = 100;

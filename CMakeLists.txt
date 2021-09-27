@@ -65,6 +65,7 @@ option(ENABLE_WEBRTC "Enable WebRTC" false)
 option(ENABLE_PLAYER "Enable Player" true)
 option(ENABLE_MSVC_MT "Enable MSVC Mt/Mtd lib" true)
 option(ENABLE_API_STATIC_LIB "Enable mk_api static lib" false)
+option(ENABLE_PRIVATE "Enable Private" false)
 
 if (MSVC AND ENABLE_MSVC_MT)
     set(CompilerFlags
@@ -182,6 +183,12 @@ endif ()
 
 #set(VS_FALGS "/wd4819 /wd4996 /wd4018 /wd4267 /wd4244 /wd4101 /wd4828 /wd4309 /wd4573 /wd4996" )
 set(VS_FALGS "/wd4819")
+
+#私有化环境
+if(ENABLE_PRIVATE)
+    add_definitions(-DENABLE_PRIVATE)
+    message(STATUS "Enable private environment")
+endif()
 
 #添加mpeg用于支持ts生成
 if (ENABLE_HLS)

@@ -827,7 +827,7 @@ void installWebApi() {
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
-                       allArgs["url"],
+                       trim(allArgs["url"]),
                        allArgs["retry_count"],
                        allArgs["enable_hls"],/* 是否hls转发 */
                        allArgs["enable_mp4"],/* 是否MP4录制 */
@@ -1058,6 +1058,22 @@ void installWebApi() {
     api_regist("/index/api/startRecord",[](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("type","vhost","app","stream");
+
+        auto isRecording = Recorder::isRecording((Recorder::type) allArgs["type"].as<int>(),
+                                            allArgs["vhost"],
+                                            allArgs["app"],
+                                            allArgs["stream"]);
+        if (isRecording) {
+            auto stop_result = Recorder::stopRecord((Recorder::type) allArgs["type"].as<int>(),
+                                               allArgs["vhost"],
+                                               allArgs["app"],
+                                               allArgs["stream"]);
+            InfoL << "Begin a recording that has already started，stop record result: " << stop_result;
+            InfoL << "stop record, stream_id: " << allArgs["stream"] << " , app: " << allArgs["app"];
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
         auto result = Recorder::startRecord((Recorder::type) allArgs["type"].as<int>(),
                                             allArgs["vhost"],
                                             allArgs["app"],

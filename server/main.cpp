@@ -304,7 +304,19 @@ int start_main(int argc,char *argv[]) {
         if (!msid.empty()) {
             mINI::Instance()[General::kMediaServerId] = msid;
         } else {
+#ifdef ENABLE_PRIVATE
+            const std::string env_name = "PRIVATE_MEDIASERVER_UUID";
+            char *env_value = nullptr;
+            env_value = getenv(env_name.c_str());
+            if (env_value == nullptr) {
+                ErrorL << "get private environment msid value failed!";
+                return -1;
+            }
+            msid = env_value;
+            mINI::Instance()[General::kMediaServerId] = msid;
+#else
             mINI::Instance()[General::kMediaServerId] = getLocalIp();
+#endif
         }
 
         GET_CONFIG(string, mediaServerId, General::kMediaServerId);
