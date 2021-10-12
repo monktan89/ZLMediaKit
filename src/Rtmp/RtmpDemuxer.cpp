@@ -75,7 +75,7 @@ bool RtmpDemuxer::loadMetaData(const AMFValue &val){
 
     if (ret) {
         //metadata中存在track相关的描述，那么我们根据metadata判断有多少个track
-        addTrackCompleted();
+        //addTrackCompleted();
     }
     return ret;
 }

@@ -507,6 +507,7 @@ void RtmpSession::onRtmpChunk(RtmpPacket::Ptr packet) {
 
         if (!_set_meta_data) {
             _set_meta_data = true;
+            dumpMetadata(_publisher_metadata);
             _publisher_src->setMetaData(_publisher_metadata ? _publisher_metadata : TitleMeta().getMetadata());
         }
         _publisher_src->onWrite(std::move(packet));
