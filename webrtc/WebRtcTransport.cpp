@@ -137,14 +137,6 @@ void WebRtcTransport::onSendSockData(const char *buf, size_t len, bool flush){
     onSendSockData(buf, len, (struct sockaddr_in *) tuple, flush);
 }
 
-const RtcSession& WebRtcTransport::getSdp(SdpType type) const{
-    switch (type) {
-        case SdpType::offer: return *_offer_sdp;
-        case SdpType::answer: return *_answer_sdp;
-        default: throw std::invalid_argument("不识别的sdp类型");
-    }
-}
-
 RTC::TransportTuple* WebRtcTransport::getSelectedTuple() const{
     return  _ice_server->GetSelectedTuple();
 }
@@ -180,20 +172,6 @@ void WebRtcTransport::setRemoteDtlsFingerprint(const RtcSession &remote){
     remote_fingerprint.algorithm = RTC::DtlsTransport::GetFingerprintAlgorithm(_offer_sdp->media[0].fingerprint.algorithm);
     remote_fingerprint.value = _offer_sdp->media[0].fingerprint.hash;
     _dtls_transport->SetRemoteFingerprint(remote_fingerprint);
-}
-
-void WebRtcTransport::onCheckSdp(SdpType type, RtcSession &sdp){
-    for (auto &m : sdp.media) {
-        if (m.type != TrackApplication && !m.rtcp_mux) {
-            throw std::invalid_argument("只支持rtcp-mux模式");
-        }
-    }
-    if (sdp.group.mids.empty()) {
-        throw std::invalid_argument("只支持group BUNDLE模式");
-    }
-    if (type == SdpType::offer) {
-        sdp.checkValidSSRC();
-    }
 }
 
 void WebRtcTransport::onRtcConfigure(RtcConfigure &configure) const {
@@ -409,7 +387,7 @@ bool WebRtcTransportImp::canSendRtp() const{
     if (!_play_src) {
         return false;
     }
-    for (auto &m : getSdp(SdpType::answer).media) {
+    for (auto &m : _answer_sdp->media) {
         if (m.direction == RtpDirection::sendrecv || m.direction == RtpDirection::sendonly) {
             return true;
         }
@@ -421,7 +399,7 @@ bool WebRtcTransportImp::canRecvRtp() const{
     if (!_push_src) {
         return false;
     }
-    for (auto &m : getSdp(SdpType::answer).media) {
+    for (auto &m : _answer_sdp->media) {
         if (m.direction == RtpDirection::sendrecv || m.direction == RtpDirection::recvonly) {
             return true;
         }
@@ -431,8 +409,8 @@ bool WebRtcTransportImp::canRecvRtp() const{
 
 void WebRtcTransportImp::onStartWebRTC() {
     //获取ssrc和pt相关信息,届时收到rtp和rtcp时分别可以根据pt和ssrc找到相关的信息
-    for (auto &m_answer : getSdp(SdpType::answer).media) {
-        auto m_offer = getSdp(SdpType::offer).getMedia(m_answer.type);
+    for (auto &m_answer : _answer_sdp->media) {
+        auto m_offer = _offer_sdp->getMedia(m_answer.type);
         auto track = std::make_shared<MediaTrack>();
 
         track->media = &m_answer;
@@ -484,13 +462,13 @@ void WebRtcTransportImp::onStartWebRTC() {
     }
 
     if (canRecvRtp()) {
-        _push_src->setSdp(getSdp(SdpType::answer).toRtspSdp());
-        _simulcast = getSdp(SdpType::answer).supportSimulcast();
+        _push_src->setSdp(_answer_sdp->toRtspSdp());
+        _simulcast = _answer_sdp->supportSimulcast();
     }
     if (canSendRtp()) {
         RtcSession rtsp_send_sdp;
         rtsp_send_sdp.loadFrom(_play_src->getSdp(), false);
-        for (auto &m : getSdp(SdpType::answer).media) {
+        for (auto &m : _answer_sdp->media) {
             if (m.type == TrackApplication) {
                 continue;
             }
@@ -528,13 +506,7 @@ void WebRtcTransportImp::onStartWebRTC() {
     _play_src = nullptr;
 }
 
-void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
-    WebRtcTransport::onCheckSdp(type, sdp);
-    if (type != SdpType::answer) {
-        //我们只修改answer sdp
-        return;
-    }
-
+void WebRtcTransportImp::onCheckAnswer(RtcSession &sdp) {
     //修改answer sdp的ip、端口信息
     GET_CONFIG(string, extern_ip, RTC::kExternIP);
     for (auto &m : sdp.media) {
@@ -571,6 +543,15 @@ void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp){
             m.rtp_rtx_ssrc[1] = m.rtp_rtx_ssrc[0];
             m.rtp_rtx_ssrc[1].ssrc += RTX_SSRC_OFFSET;
         }
+    }
+}
+
+void WebRtcTransportImp::onCheckSdp(SdpType type, RtcSession &sdp) {
+    sdp.checkSdp();
+    switch (type) {
+        case SdpType::answer: onCheckAnswer(sdp); break;
+        case SdpType::offer: sdp.checkValidSSRC(); break;
+        default: /*不可达*/ assert(0); break;
     }
 }
 
@@ -886,7 +867,7 @@ void WebRtcTransportImp::onSortedRtp(MediaTrack &track, const string &rid, RtpPa
 
         //开启remb，则发送remb包调节比特率
         GET_CONFIG(size_t, remb_bit_rate, RTC::kRembBitRate);
-        if (remb_bit_rate && getSdp(SdpType::answer).supportRtcpFb(SdpConst::kRembRtcpFb)) {
+        if (remb_bit_rate && _answer_sdp->supportRtcpFb(SdpConst::kRembRtcpFb)) {
             sendRtcpRemb(rtp->getSSRC(), remb_bit_rate);
         }
     }

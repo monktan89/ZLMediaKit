@@ -666,6 +666,7 @@ public:
 
     void loadFrom(const string &sdp, bool check = true);
     void checkValid() const;
+    void checkSdp() const;
     //offer sdp,如果指定了发送rtp,那么应该指定ssrc
     void checkValidSSRC() const;
     string toString() const;

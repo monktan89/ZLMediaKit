@@ -106,7 +106,7 @@ protected:
 protected:
     virtual void onStartWebRTC() = 0;
     virtual void onRtcConfigure(RtcConfigure &configure) const;
-    virtual void onCheckSdp(SdpType type, RtcSession &sdp);
+    virtual void onCheckSdp(SdpType type, RtcSession &sdp) = 0;
     virtual void onSendSockData(const char *buf, size_t len, struct sockaddr_in *dst, bool flush = true) = 0;
 
     virtual void onRtp(const char *buf, size_t len, uint64_t stamp_ms) = 0;
@@ -116,7 +116,8 @@ protected:
     virtual void onBeforeEncryptRtcp(const char *buf, int &len, void *ctx) = 0;
 
 protected:
-    const RtcSession& getSdp(SdpType type) const;
+    RtcSession::Ptr _offer_sdp;
+    RtcSession::Ptr _answer_sdp;
     RTC::TransportTuple* getSelectedTuple() const;
     void sendRtcpRemb(uint32_t ssrc, size_t bit_rate);
     void sendRtcpPli(uint32_t ssrc);
@@ -133,8 +134,6 @@ private:
     std::shared_ptr<RTC::DtlsTransport> _dtls_transport;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_send;
     std::shared_ptr<RTC::SrtpSession> _srtp_session_recv;
-    RtcSession::Ptr _offer_sdp;
-    RtcSession::Ptr _answer_sdp;
     Ticker _ticker;
 };
 
@@ -223,6 +222,7 @@ private:
     void registerSelf();
     void unregisterSelf();
     void unrefSelf();
+    void onCheckAnswer(RtcSession &sdp);
 
 private:
     bool _simulcast = false;
