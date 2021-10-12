@@ -280,8 +280,8 @@ int start_main(int argc,char *argv[]) {
 #endif
         }
 
-        GET_CONFIG(string, mediaServerId, General::kMediaServerId);
-        InfoL << "本服务器运行ID为: " << mediaServerId;
+        GET_CONFIG(string, media_server_id, General::kMediaServerId);
+        InfoL << "本服务器运行ID为: " << media_server_id;
 
         if(!File::is_dir(ssl_file.data())){
             //不是文件夹，加载证书，证书包含公钥和私钥

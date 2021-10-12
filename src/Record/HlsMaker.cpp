@@ -54,8 +54,9 @@ void HlsMaker::makeIndexFile(bool eof) {
         snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
         rcontent.assign(file_content);
     }else{
+        GET_CONFIG(string, media_server_id, General::kMediaServerId);
         for (auto &tp : _seg_dur_list) {
-            snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data());
+            snprintf(file_content, sizeof(file_content), "#EXTINF:%.3f,\n%s?src=%s\n", std::get<0>(tp) / 1000.0, std::get<1>(tp).data(), media_server_id.data());
             m3u8.append(file_content);
         }
     }
