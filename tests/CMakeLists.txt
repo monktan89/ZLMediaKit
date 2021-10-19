@@ -4,9 +4,7 @@ aux_source_directory(. TEST_SRC_LIST)
 foreach (TEST_SRC ${TEST_SRC_LIST})
     if (NOT ENABLE_WEBRTC)
         # 暂时过滤掉依赖 WebRTC 的测试模块
-        if ("${TEST_SRC}" MATCHES "test_rtcp_nack\.cpp")
-            continue()
-        endif ()
+        list(REMOVE_ITEM TEST_SRC_LIST test_rtcp_nack.cpp)
     endif ()
 
     get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
@@ -23,15 +21,3 @@ foreach (TEST_SRC ${TEST_SRC_LIST})
         target_link_libraries(${TEST_EXE_NAME} ${LINK_LIB_LIST})
     endif ()
 endforeach ()
-
-
-
-
-
-
-
-
-
-
-
-
