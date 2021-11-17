@@ -20,7 +20,6 @@
 #include "Http/HttpSession.h"
 #include "WebHook.h"
 #include "WebApi.h"
-#include "Record/MP4Recorder.h"
 #include "Util/base64.h"
 
 using namespace toolkit;

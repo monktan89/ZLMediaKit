@@ -45,7 +45,8 @@ void HttpSession::Handle_Req_OPTIONS(ssize_t &content_len){
     header.emplace("Access-Control-Allow-Headers", "*");
     header.emplace("Access-Control-Allow-Credentials", "true");
     header.emplace("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS");
-    header.emplace("Access-Control-Request-Headers","Accept,Accept-Language,Content-Language,Content-Type");
+    header.emplace("Access-Control-Request-Methods", "GET, POST, OPTIONS");
+    header.emplace("Access-Control-Request-Headers", "Accept,Accept-Language,Content-Language,Content-Type");
     sendResponse(200, true, nullptr, header);
 }
 
