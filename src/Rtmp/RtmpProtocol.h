@@ -111,6 +111,8 @@ private:
     function<const char * (const char *data, size_t len)> _next_step_func;
     ////////////Chunk////////////
     unordered_map<int, std::pair<RtmpPacket::Ptr/*now*/, RtmpPacket::Ptr/*last*/> > _map_chunk_data;
+    //循环池
+    ResourcePool<BufferRaw> _packet_pool;
 };
 
 } /* namespace mediakit */
