@@ -33,11 +33,11 @@ public:
         _hls->setMediaSource(vhost, app, stream_id);
     }
 
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener, bool need_register = true) {
         setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
-        //先注册媒体流，后续可以按需生成
-        _hls->getMediaSource()->registHls(false);
+        //先注册媒体流，后续可以按需生成，如果是hls不删除录制，不需要注册
+        if (need_register) _hls->getMediaSource()->registHls(false);
     }
 
     int readerCount() {

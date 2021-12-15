@@ -191,7 +191,7 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
                 auto hls_record = dynamic_pointer_cast<HlsRecorder>(makeRecorder(sender, getTracks(true), type, custom_path, max_second));
                 if (hls_record) {
                     //设置HlsMediaSource的事件监听器
-                    hls_record->setListener(shared_from_this());
+                    hls_record->setListener(shared_from_this(), false);
                 }
                 _hls_record = hls_record;
             } else if (!start && _hls_record) {

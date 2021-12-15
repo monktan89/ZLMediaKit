@@ -84,6 +84,7 @@ private:
     EventPoller::Ptr _poller;
     map<uint64_t /*index*/,string/*file_path*/> _segment_file_paths;
     time_t _ui64StartedTime;
+    uint8_t _hls_type;
 };
 
 }//namespace mediakit

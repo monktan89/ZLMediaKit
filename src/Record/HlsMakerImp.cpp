@@ -35,6 +35,7 @@ HlsMakerImp::HlsMakerImp(const string &m3u8_file,
 
     _ui64StartedTime = ::time(nullptr);
     _info.folder = _path_prefix;
+    _hls_type = record_type;
 
     InfoL << "create HlsMakerImp, this: " << (long)this
         << ", type: " << record_type
@@ -137,7 +138,7 @@ void HlsMakerImp::onWriteHls(const char *data, size_t len) {
         fwrite(data, len, 1, hls.get());
         hls.reset();
         if (_media_src) {
-            _media_src->registHls(true);
+            if (_hls_type == 0) _media_src->registHls(true);
         }
     } else {
         WarnL << "create hls file failed," << _path_hls << " " << get_uv_errmsg();
@@ -177,7 +178,7 @@ void HlsMakerImp::onWriteRecordM3u8(const char *header, size_t hlen, const char 
         fwrite(body, blen,1, hls.get());
         hls.reset();
         if(_media_src){
-            _media_src->registHls(true);
+            if (_hls_type == 0) _media_src->registHls(true);
         }
     } else {
         WarnL << "create hls file failed, " << _path_hls << " " <<  get_uv_errmsg();
