@@ -113,6 +113,9 @@ public:
             bytes[i] = cdata[rand() % (sizeof(cdata) - 1)];
         }
     }
+
+    void create_complex_c0c1();
+
 }PACKED;
 
 class RtmpHeader {
