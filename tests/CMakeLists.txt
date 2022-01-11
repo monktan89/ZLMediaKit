@@ -2,12 +2,13 @@
 aux_source_directory(. TEST_SRC_LIST)
 
 foreach (TEST_SRC ${TEST_SRC_LIST})
+    get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
+
     if (NOT ENABLE_WEBRTC)
         # 暂时过滤掉依赖 WebRTC 的测试模块
         list(REMOVE_ITEM TEST_SRC_LIST test_rtcp_nack.cpp)
     endif ()
 
-    get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
 
