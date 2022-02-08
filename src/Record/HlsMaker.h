@@ -18,7 +18,6 @@
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-using namespace toolkit;
 
 namespace mediakit {
 
@@ -56,7 +55,7 @@ protected:
      * @param index
      * @return
      */
-    virtual string onOpenSegment(uint64_t index) = 0;
+    virtual std::string onOpenSegment(uint64_t index) = 0;
 
     /**
      * 删除ts切片文件回调
@@ -84,7 +83,9 @@ protected:
      */
     virtual void onFlushLastSegment(uint32_t duration_ms) {};
 
-
+    /**
+     * 存盘录制hls，写入m3u8文件
+     */
     virtual void onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen) = 0;
 
     /**
@@ -117,8 +118,8 @@ private:
     uint32_t _last_timestamp = 0;
     uint32_t _last_seg_timestamp = 0;
     uint64_t _file_index = 0;
-    string _last_file_name;
-    std::deque<tuple<int,string> > _seg_dur_list;
+    std::string _last_file_name;
+    std::deque<std::tuple<int,std::string> > _seg_dur_list;
     uint32_t _hls_record_type;
 };
 
