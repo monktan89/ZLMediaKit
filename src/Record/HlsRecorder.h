@@ -39,7 +39,7 @@ public:
         setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
         //先注册媒体流，后续可以按需生成，如果是hls不删除录制，不需要注册
-        if (need_register) _hls->getMediaSource()->registHls(false);
+        if (need_register) _hls->getMediaSource()->registHls("");
     }
 
     int readerCount() {

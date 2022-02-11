@@ -84,7 +84,7 @@ void HlsMaker::makeIndexFile(bool eof) {
     if (_hls_record_type == 2) {
         onWriteRecordM3u8(rm3u8.data(), rm3u8.size(), rcontent.data(), rcontent.size());
     }else{
-    	 onWriteHls(m3u8.data(), m3u8.size());
+    	 onWriteHls(m3u8);
     }
 }
 

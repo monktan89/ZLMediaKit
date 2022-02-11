@@ -62,7 +62,7 @@ protected:
     std::string onOpenSegment(uint64_t index) override ;
     void onDelSegment(uint64_t index) override;
     void onWriteSegment(const char *data, size_t len) override;
-    void onWriteHls(const char *data, size_t len) override;
+    void onWriteHls(const std::string &data) override;
     void onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen) override;
     void onFlushLastSegment(uint32_t duration_ms) override;
 
