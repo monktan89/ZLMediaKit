@@ -20,11 +20,11 @@ class HlsRecorder : public MediaSourceEventInterceptor, public MpegMuxer, public
 public:
     using Ptr = std::shared_ptr<HlsRecorder>;
 
-    HlsRecorder(const std::string &m3u8_file, const std::string &params, uint32_t record_type) : MpegMuxer(false) {
+    HlsRecorder(const std::string &m3u8_file, const std::string &params) : MpegMuxer(false) {
         GET_CONFIG(uint32_t, hlsNum, Hls::kSegmentNum);
         GET_CONFIG(uint32_t, hlsBufSize, Hls::kFileBufSize);
         GET_CONFIG(float, hlsDuration, Hls::kSegmentDuration);
-        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum, record_type);
+        _hls = std::make_shared<HlsMakerImp>(m3u8_file, params, hlsBufSize, hlsDuration, hlsNum);
         //清空上次的残余文件
         _hls->clearCache();
     }
@@ -35,7 +35,7 @@ public:
         _hls->setMediaSource(vhost, app, stream_id);
     }
 
-    void setListener(const std::weak_ptr<MediaSourceEvent> &listener, bool need_register = true) {
+    void setListener(const std::weak_ptr<MediaSourceEvent> &listener) {
         setDelegate(listener);
         _hls->getMediaSource()->setListener(shared_from_this());
     }

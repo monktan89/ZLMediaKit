@@ -273,24 +273,6 @@ void installWebHook(){
     GET_CONFIG(bool,hook_enable,Hook::kEnable);
     GET_CONFIG(string,hook_adminparams,Hook::kAdminParams);
 
-    //录制hls文件成功后广播
-    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordHls,[](BroadcastRecordHlsArgs){
-        GET_CONFIG(string,hook_record_hls,Hook::kOnRecordHls);
-        if(!hook_enable || hook_record_hls.empty()){
-            return;
-        }
-        ArgsType body;
-        body["file_path"] = info.strFilePath;
-        body["app"] = info.strAppName;
-        body["stream"] = info.strStreamId;
-        body["start_time"] = (Json::UInt64)info.ui64StartedTime;
-        body["time_len"] = (Json::UInt64)info.ui64TimeLen;
-
-        InfoL << "do_hook_record_hls, file_path: " << info.strFilePath;
-        //执行hook
-        do_http_hook(hook_record_hls,body, nullptr);
-    });
-
     //转推流失败后广播
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherFailed, [](BroadcastProxyPusherFailedArgs){
         GET_CONFIG(string,hook_proxy_pusher_failed,Hook::kOnProxyPusherFailed);
@@ -550,6 +532,20 @@ void installWebHook(){
         do_http_hook(hook_record_mp4, getRecordInfo(info), nullptr);
     });
 #endif //ENABLE_MP4
+
+#ifdef ENABLE_HLS
+    //录制hls文件落盘成功后广播
+    NoticeCenter::Instance().addListener(nullptr,Broadcast::kBroadcastRecordHlsDisk,[](BroadcastRecordHlsDiskArgs){
+        GET_CONFIG(bool, hook_enable, Hook::kEnable)
+        GET_CONFIG(string, hook_record_hls, Hook::kOnRecordHls);
+        if(!hook_enable || hook_record_hls.empty()){
+            return;
+        }
+
+        //执行hook
+        do_http_hook(hook_record_hls, getRecordInfo(info), nullptr);
+    });
+#endif
 
     NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastRecordTs, [](BroadcastRecordTsArgs) {
         GET_CONFIG(string,hook_record_ts,Hook::kOnRecordTs);

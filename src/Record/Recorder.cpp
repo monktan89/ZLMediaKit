@@ -13,6 +13,7 @@
 #include "Common/MediaSource.h"
 #include "MP4Recorder.h"
 #include "HlsRecorder.h"
+#include "HlsRecorderDisk.h"
 
 using namespace std;
 using namespace toolkit;
@@ -51,8 +52,7 @@ string Recorder::getRecordPath(Recorder::type type, const string &vhost, const s
             }
             return File::absolutePath(mp4FilePath, recordPath);
         }
-
-        case Recorder::type_hls_record: {
+        case Recorder::type_hls_disk: {
             GET_CONFIG(string, hlsPath, Record::kFilePath);
             string m3u8FilePath;
             if (enableVhost) {
@@ -80,7 +80,7 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
         case Recorder::type_hls: {
 #if defined(ENABLE_HLS)
             GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
-            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "", 0);
+            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "");
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
 #else
@@ -96,12 +96,10 @@ std::shared_ptr<MediaSinkInterface> Recorder::createRecorder(type type, const st
             throw std::invalid_argument("mp4相关功能未打开，请开启ENABLE_MP4宏后编译再测试");
 #endif
         }
-
-        case Recorder::type_hls_record: {
+        case Recorder::type_hls_disk: {
 #if defined(ENABLE_HLS)
             GET_CONFIG(bool, enable_vhost, General::kEnableVhost);
-            auto ret = std::make_shared<HlsRecorder>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "", 2);
-            InfoL << "create Hls Record ret "<< ret;
+            auto ret = std::make_shared<HlsRecorderDisk>(path, enable_vhost ? string(VHOST_KEY) + "=" + vhost : "");
             ret->setMediaSource(vhost, app, stream_id);
             return ret;
 #else
