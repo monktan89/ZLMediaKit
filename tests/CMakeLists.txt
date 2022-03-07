@@ -1,13 +1,13 @@
 ﻿execute_process(COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/default.pem ${EXECUTABLE_OUTPUT_PATH}/)
 aux_source_directory(. TEST_SRC_LIST)
 
+if (NOT ENABLE_WEBRTC)
+    # 暂时过滤掉依赖 WebRTC 的测试模块
+    list(REMOVE_ITEM TEST_SRC_LIST ./test_rtcp_nack.cpp)
+endif ()
+
 foreach (TEST_SRC ${TEST_SRC_LIST})
     get_filename_component(TEST_EXE_NAME ${TEST_SRC} NAME_WE)
-
-    if (NOT ENABLE_WEBRTC)
-        # 暂时过滤掉依赖 WebRTC 的测试模块
-        list(REMOVE_ITEM TEST_SRC_LIST test_rtcp_nack.cpp)
-    endif ()
 
     message(STATUS "add test:${TEST_EXE_NAME}")
     add_executable(${TEST_EXE_NAME} ${TEST_SRC})
