@@ -1580,10 +1580,6 @@ void installWebApi() {
         //录制mp4分片完毕事件
     });
 
-    api_regist("/index/hook/on_record_hls",[](API_ARGS_JSON){
-        //录制hls分片完毕事件
-    });
-
     api_regist("/index/hook/on_shell_login",[](API_ARGS_JSON){
         //shell登录调试事件
     });

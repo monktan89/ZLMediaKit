@@ -45,10 +45,6 @@ extern const std::string kBroadcastRecordMP4;
 extern const std::string kBroadcastRecordTs;
 #define BroadcastRecordTsArgs const RecordInfo &info
 
-//录制hls文件成功后广播
-extern const std::string kBroadcastRecordHlsDisk;
-#define BroadcastRecordHlsDiskArgs const RecordInfo &info
-
 //转推流失败后广播
 extern const std::string kBroadcastProxyPusherFailed;
 #define BroadcastProxyPusherFailedArgs const std::string& key, const string& dstUrl, const string& details

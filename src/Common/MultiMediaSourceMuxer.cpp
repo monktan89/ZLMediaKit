@@ -137,7 +137,6 @@ void MultiMediaSourceMuxer::setTrackListener(const std::weak_ptr<Listener> &list
 
 int MultiMediaSourceMuxer::totalReaderCount() const {
     auto hls = _hls;
-    auto hls_disk = _hls_disk;
     auto ret = (_rtsp ? _rtsp->readerCount() : 0) +
                (_rtmp ? _rtmp->readerCount() : 0) +
                (_ts ? _ts->readerCount() : 0) +
@@ -145,8 +144,7 @@ int MultiMediaSourceMuxer::totalReaderCount() const {
                (_fmp4 ? _fmp4->readerCount() : 0) +
                (_mp4 ? 1 : 0) +
                #endif
-               (hls ? hls->readerCount() : 0) +
-               (hls_disk ? 1 : 0);
+               (hls ? hls->readerCount() : 0);
 
 #if defined(ENABLE_RTPPROXY)
     return ret + (int)_rtp_sender.size();
@@ -203,17 +201,6 @@ bool MultiMediaSourceMuxer::setupRecord(MediaSource &sender, Recorder::type type
             ret = true;
             goto ret;
         }
-        case Recorder::type_hls_disk: {
-            if (start && !_hls_disk) {
-                // 开始录制
-                _hls_disk = makeRecorder(sender, getTracks(), type, custom_path, max_second);
-            } else if (!start && _hls_disk) {
-                // 停止录制
-                _hls_disk = nullptr;
-            }
-            ret = true;
-            goto ret;
-        }
         default : {
             ret = false;
             goto ret;
@@ -231,8 +218,6 @@ bool MultiMediaSourceMuxer::isRecording(MediaSource &sender, Recorder::type type
             return !!_hls;
         case Recorder::type_mp4 :
             return !!_mp4;
-        case Recorder::type_hls_disk:
-            return !!_hls_disk;
         default:
             return false;
     }
@@ -315,17 +300,10 @@ bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
     if (hls) {
         ret = hls->addTrack(track) ? true : ret;
     }
-
     auto mp4 = _mp4;
     if (mp4) {
         ret = mp4->addTrack(track) ? true : ret;
     }
-
-    auto hls_disk = _hls_disk;
-    if (hls_disk) {
-        ret = hls_disk->addTrack(track) ? true : ret;
-    }
-
     return ret;
 }
 
@@ -384,11 +362,6 @@ void MultiMediaSourceMuxer::resetTracks() {
     auto mp4 = _mp4;
     if (mp4) {
         mp4->resetTracks();
-    }
-
-    auto hls_disk = _hls_disk;
-    if (hls_disk) {
-        hls_disk->resetTracks();
     }
 }
 
@@ -469,15 +442,9 @@ bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame_in) {
     if (hls) {
         ret = hls->inputFrame(frame) ? true : ret;
     }
-
     auto mp4 = _mp4;
     if (mp4) {
         ret = mp4->inputFrame(frame) ? true : ret;
-    }
-
-    auto hls_disk = _hls_disk;
-    if (hls_disk) {
-        ret = hls_disk->inputFrame(frame) ? true : ret;
     }
 
 #if defined(ENABLE_MP4)

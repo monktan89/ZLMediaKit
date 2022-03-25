@@ -55,7 +55,6 @@ const string kBroadcastShellLogin = "kBroadcastShellLogin";
 const string kBroadcastNotFoundStream = "kBroadcastNotFoundStream";
 const string kBroadcastStreamNoneReader = "kBroadcastStreamNoneReader";
 const string kBroadcastHttpBeforeAccess = "kBroadcastHttpBeforeAccess";
-const string kBroadcastRecordHlsDisk = "kBroadcastRecordHlsDisk";
 const string kBroadcastProxyPusherFailed = "kBroadcastProxyPusherFailed";
 const string kBroadcastProxyPusherNoneReader = "kBroadcastProxyPusherNoneReader";
 const string kBroadcastEventReport = "kBroadcastEventReport";

@@ -18,7 +18,6 @@
 #include "Util/File.h"
 #include "Util/util.h"
 #include "Util/logger.h"
-#include "Recorder.h"
 
 namespace mediakit {
 
@@ -28,7 +27,7 @@ public:
      * @param seg_duration 切片文件长度
      * @param seg_number 切片个数
      */
-    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3, Recorder::type type = Recorder::type_hls);
+    HlsMaker(float seg_duration = 5, uint32_t seg_number = 3);
     virtual ~HlsMaker();
 
     /**
@@ -77,12 +76,6 @@ protected:
     virtual void onWriteHls(const std::string &data) = 0;
 
     /**
-     * 写m3u8文件回调，hls落盘使用
-     * @param data
-     * @param len
-     */
-    virtual void onWriteRecordM3u8(const char *header, size_t hlen, const char *body, size_t blen) = 0;
-    /**
      * 上一个 ts 切片写入完成, 可在这里进行通知处理
      * @param duration_ms 上一个 ts 切片的时长, 单位为毫秒
      */
@@ -120,7 +113,6 @@ private:
     uint64_t _file_index = 0;
     std::string _last_file_name;
     std::deque<std::tuple<int,std::string> > _seg_dur_list;
-    Recorder::type _type{Recorder::type_hls};
 };
 
 }//namespace mediakit
