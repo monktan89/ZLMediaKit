@@ -178,7 +178,7 @@ void do_http_hook(const string &url,const ArgsType &body,const function<void(con
             }
             if (!err.empty()) {
                 WarnL << "hook " << url << " " << pTicker->elapsedTime() << "ms,failed" << err << ":" << bodyStr;
-            } else if (pTicker->elapsedTime() > 500) {
+            } else {
                 DebugL << "hook " << url << " " << pTicker->elapsedTime() << "ms,success:" << bodyStr;
             }
         });

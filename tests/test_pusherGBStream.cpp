@@ -66,7 +66,17 @@ void createPusher(const EventPoller::Ptr &poller,
 
     InfoL << "开始推送国标流...";
 
-    g_src->startSendRtp(info.dst_url, info.dst_port, std::to_string(info.ssrc), info.is_udp, info.src_port, [poller,schema,vhost,app,stream,filePath, info](uint16_t local_port, const SockException &ex){
+    MediaSourceEvent::SendRtpArgs args;
+    args.dst_url = info.dst_url;
+    args.dst_port = info.dst_port;
+    args.ssrc = std::to_string(info.ssrc);
+    args.is_udp = info.is_udp;
+    args.src_port = info.src_port;
+    args.pt = 96;
+    args.use_ps = true;
+    args.only_audio = false;
+
+    g_src->startSendRtp(args, [poller,schema,vhost,app,stream,filePath, info](uint16_t local_port, const SockException &ex){
         if (ex) {
             ErrorL << "Publish gb28181 rtp fail: " << ex.getErrCode() << " " << ex.what();
             //如果发布失败，就重试
