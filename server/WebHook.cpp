@@ -198,11 +198,6 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
             if (func) {
                 func(obj, err);
             }
-            if (!err.empty()) {
-                WarnL << "hook " << url << " " << pTicker->elapsedTime() << "ms,failed" << err << ":" << bodyStr;
-            } else {
-                DebugL << "hook " << url << " " << pTicker->elapsedTime() << "ms,success:" << bodyStr;
-            }
         });
     }, hook_timeoutSec);
 }
