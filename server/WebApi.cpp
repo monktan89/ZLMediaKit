@@ -926,6 +926,7 @@ void installWebApi() {
 			NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherFailed, key, url, errMsg);
         });
         pusher->publish(url);
+        InfoL << "send pushing request success, streamId: " << stream << ", dstUrl: " << url;
     };
 
     //动态添加rtsp/rtmp推流代理
