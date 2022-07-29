@@ -102,39 +102,20 @@ onceToken token1([](){
 },nullptr);
 } //namespace RtpProxy
 
+namespace NetWork {
+#define NETWORK_FIELD "network."
+const std::string kNetworkInterface = NETWORK_FIELD "interface";
+
+static toolkit::onceToken token([]() {
+    toolkit::mINI::Instance()[kNetworkInterface] = "eth0";
+});
+} //namespace NetWork
+
 }  // namespace mediakit
 
 std::string getLocalIp() {
-    std::string local_ip;
-#ifdef ENABLE_LINUX
-    auto ips = SockUtil::getInterfaceList();
-
-    //优先查找eth1
-    bool isFind = false;
-    for (auto &obj : ips) {
-        if (obj["name"] == "eth1") {
-            local_ip = obj["ip"];
-            InfoL << "get eth1 local ip: " << local_ip;
-            return local_ip;
-        }
-    }
-
-    //次要查找eth0
-    for (auto &obj : ips) {
-        if (obj["name"] == "eth0") {
-            local_ip = obj["ip"];
-            InfoL << "get eth0 local ip: " << local_ip;
-            return local_ip;
-        }
-    }
-
-    //都查找不到返回默认
-    return SockUtil::get_local_ip();
-#else
-    local_ip = SockUtil::get_local_ip();
-#endif
-
-    return local_ip;
+    GET_CONFIG(std::string, networkInterface, NetWork::kNetworkInterface);
+    return toolkit::SockUtil::get_ifr_ip(networkInterface.c_str());
 }
 
 class CMD_main : public CMD {
