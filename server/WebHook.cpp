@@ -190,7 +190,7 @@ void do_http_hook(const string &url, const ArgsType &body, const function<void(c
                     return;
                 }
 
-            } else if (ticker.elapsedTime() > 500) {
+            } else if (ticker.elapsedTime() > 1) {
                 //hook成功，但是hook响应超过500ms，打印警告日志
                 DebugL << "hook " << url << " " << ticker.elapsedTime() << "ms,success:" << bodyStr;
             }
@@ -302,7 +302,7 @@ void installWebHook(){
     GET_CONFIG(string,hook_adminparams,Hook::kAdminParams);
 
     //转推流失败后广播
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherFailed, [](BroadcastProxyPusherFailedArgs){
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastProxyPusherFailed, [](BroadcastProxyPusherFailedArgs){
         GET_CONFIG(string,hook_proxy_pusher_failed,Hook::kOnProxyPusherFailed);
         if(!hook_enable || hook_proxy_pusher_failed.empty()){
             return;
@@ -317,7 +317,7 @@ void installWebHook(){
     });
 
     //转推流无人观看
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastProxyPusherNoneReader, [](BroadcastProxyPusherNoneReaderArgs){
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastProxyPusherNoneReader, [](BroadcastProxyPusherNoneReaderArgs){
         GET_CONFIG(string,hook_proxy_pusher_none_reader,Hook::kOnProxyPusherNoneReader);
         if(!hook_enable || hook_proxy_pusher_none_reader.empty()){
             return;
@@ -333,7 +333,7 @@ void installWebHook(){
     });
 
     //上报用户关注的事件点
-    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastEventReport, [](BroadcastEventReportArgs){
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastEventReport, [](BroadcastEventReportArgs){
         GET_CONFIG(string,hook_event_report,Hook::kOnEventReport);
         if(!hook_enable || hook_event_report.empty()){
             return;
