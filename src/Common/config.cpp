@@ -241,6 +241,7 @@ const string kFilePath = RECORD_FIELD "filePath";
 const string kFileBufSize = RECORD_FIELD "fileBufSize";
 const string kFastStart = RECORD_FIELD "fastStart";
 const string kFileRepeat = RECORD_FIELD "fileRepeat";
+const string kMP4AsPlayer = RECORD_FIELD "mp4_as_player";
 
 static onceToken token([]() {
     mINI::Instance()[kAppName] = "record";
@@ -250,6 +251,7 @@ static onceToken token([]() {
     mINI::Instance()[kFileBufSize] = 64 * 1024;
     mINI::Instance()[kFastStart] = false;
     mINI::Instance()[kFileRepeat] = false;
+    mINI::Instance()[kMP4AsPlayer] = false;
 });
 } // namespace Record
 

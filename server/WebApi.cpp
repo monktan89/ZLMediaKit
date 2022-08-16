@@ -48,6 +48,10 @@
 #include <tchar.h>
 #endif // _WIN32
 
+#if defined(ENABLE_VERSION)
+#include "version.h"
+#endif
+
 using namespace std;
 using namespace Json;
 using namespace toolkit;
@@ -997,6 +1001,7 @@ void installWebApi() {
         ProtocolOption option;
         getArgsValue(allArgs, "enable_hls", option.enable_hls);
         getArgsValue(allArgs, "enable_mp4", option.enable_mp4);
+        getArgsValue(allArgs, "mp4_as_player", option.mp4_as_player);
         getArgsValue(allArgs, "enable_rtsp", option.enable_rtsp);
         getArgsValue(allArgs, "enable_rtmp", option.enable_rtmp);
         getArgsValue(allArgs, "enable_ts", option.enable_ts);
@@ -1581,6 +1586,18 @@ void installWebApi() {
                 invoker(200, headerOut, val.toStyledString());
             }
         });
+    });
+#endif
+
+#if defined(ENABLE_VERSION)
+    api_regist("/index/api/version",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        Value ver;
+        ver["buildTime"] = BUILD_TIME;
+        ver["branchName"] = BRANCH_NAME;
+        ver["commitHash"] = COMMIT_HASH;
+        val["data"] = ver;
+        invoker(200, headerOut, val.toStyledString());
     });
 #endif
 
