@@ -556,7 +556,7 @@ void SdpAttrRtpMap::parse(const string &str)  {
 
 string SdpAttrRtpMap::toString() const  {
     if (value.empty()) {
-        value = to_string(pt) + " " + codec + "/" + to_string(sample_rate);
+        value = to_string((int)pt) + " " + codec + "/" + to_string(sample_rate);
         if (channel) {
             value += '/';
             value += to_string(channel);
@@ -574,7 +574,7 @@ void SdpAttrRtcpFb::parse(const string &str_in)  {
 
 string SdpAttrRtcpFb::toString() const  {
     if (value.empty()) {
-        value = to_string(pt) + " " + rtcp_type;
+        value = to_string((int)pt) + " " + rtcp_type;
     }
     return SdpItem::toString();
 }
@@ -598,7 +598,7 @@ void SdpAttrFmtp::parse(const string &str)  {
 
 string SdpAttrFmtp::toString() const  {
     if (value.empty()) {
-        value = to_string(pt);
+        value = to_string((int)pt);
         int i = 0;
         for (auto &pr : fmtp) {
             value += (i++  ? ';' : ' ');
@@ -1070,7 +1070,7 @@ RtcSessionSdp::Ptr RtcSession::toRtcSessionSdp() const{
         mline->port = m.port;
         mline->proto = m.proto;
         for (auto &p : m.plan) {
-            mline->fmts.emplace_back(to_string(p.pt));
+            mline->fmts.emplace_back(to_string((int)p.pt));
         }
         if (m.type == TrackApplication) {
             mline->fmts.emplace_back("webrtc-datachannel");
@@ -1311,6 +1311,10 @@ void RtcSession::checkValid() const{
     bool have_active_media = false;
     for (auto &item : media) {
         item.checkValid();
+
+        if (TrackApplication == item.type) {
+            have_active_media = true;
+        }
         switch (item.direction) {
             case RtpDirection::sendrecv:
             case RtpDirection::sendonly:
@@ -1346,6 +1350,10 @@ bool RtcSession::supportSimulcast() const {
         }
     }
     return false;
+}
+
+bool RtcSession::isOnlyDatachannel() const {
+    return 1 == media.size() && TrackApplication == media[0].type;
 }
 
 string const SdpConst::kTWCCRtcpFb = "transport-cc";
@@ -1596,6 +1604,10 @@ RETRY:
 #ifdef ENABLE_SCTP
         answer_media.direction = matchDirection(offer_media.direction, configure.direction);
         answer_media.candidate = configure.candidate;
+        answer_media.ice_ufrag = configure.ice_ufrag;
+        answer_media.ice_pwd = configure.ice_pwd;
+        answer_media.fingerprint = configure.fingerprint;
+        answer_media.ice_lite = configure.ice_lite;
 #else
         answer_media.direction = RtpDirection::inactive;
 #endif
