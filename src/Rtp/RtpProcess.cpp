@@ -289,7 +289,7 @@ std::shared_ptr<SockInfo> RtpProcess::getOriginSock(MediaSource &sender) const {
 }
 
 toolkit::EventPoller::Ptr RtpProcess::getOwnerPoller(MediaSource &sender) {
-    return _sock ? _sock->getPoller() : nullptr;
+    return _sock ? _sock->getPoller() : EventPollerPool::Instance().getPoller();
 }
 
 void RtpProcess::setHelper(std::weak_ptr<RtcpContext> help) {
