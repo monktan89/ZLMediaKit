@@ -51,6 +51,11 @@ public:
         return _ring;
     }
 
+    void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
+                       const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) override {
+        _ring->getInfoList(cb, on_change);
+    }
+
     /**
      * 获取fmp4 init segment
      */
@@ -109,7 +114,6 @@ private:
             }
             strong_self->onReaderChanged(size);
         });
-        onReaderChanged(0);
         if (!_init_segment.empty()) {
             regist();
         }

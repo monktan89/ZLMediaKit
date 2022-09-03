@@ -87,7 +87,7 @@ public:
     //流注册或注销事件
     virtual void onRegist(MediaSource &sender, bool regist) {};
     // 获取丢包率
-    virtual int getLossRate(MediaSource &sender, TrackType type) { return -1; }
+    virtual float getLossRate(MediaSource &sender, TrackType type) { return -1; }
     // 获取所在线程, 此函数一般强制重载
     virtual toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) { throw NotImplemented(toolkit::demangle(typeid(*this).name()) + "::getOwnerPoller not implemented"); }
 
@@ -164,7 +164,7 @@ public:
     std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const override;
     void startSendRtp(MediaSource &sender, const SendRtpArgs &args, const std::function<void(uint16_t, const toolkit::SockException &)> cb) override;
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
-    int getLossRate(MediaSource &sender, TrackType type) override;
+    float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
 
 private:
@@ -190,52 +190,6 @@ public:
     std::string _app;
     std::string _streamid;
     std::string _param_strs;
-};
-
-class BytesSpeed {
-public:
-    BytesSpeed() = default;
-    ~BytesSpeed() = default;
-
-    /**
-     * 添加统计字节
-     */
-    BytesSpeed& operator += (size_t bytes) {
-        _bytes += bytes;
-        if (_bytes > 1024 * 1024) {
-            //数据大于1MB就计算一次网速
-            computeSpeed();
-        }
-        return *this;
-    }
-
-    /**
-     * 获取速度，单位bytes/s
-     */
-    int getSpeed() {
-        if (_ticker.elapsedTime() < 1000) {
-            //获取频率小于1秒，那么返回上次计算结果
-            return _speed;
-        }
-        return computeSpeed();
-    }
-
-private:
-    int computeSpeed() {
-        auto elapsed = _ticker.elapsedTime();
-        if (!elapsed) {
-            return _speed;
-        }
-        _speed = (int)(_bytes * 1000 / elapsed);
-        _ticker.resetTime();
-        _bytes = 0;
-        return _speed;
-    }
-
-private:
-    int _speed = 0;
-    size_t _bytes = 0;
-    toolkit::Ticker _ticker;
 };
 
 /**
@@ -293,6 +247,12 @@ public:
     virtual int readerCount() = 0;
     // 观看者个数，包括(hls/rtsp/rtmp)
     virtual int totalReaderCount();
+    // 获取播放器列表
+    virtual void getPlayerList(const std::function<void(const std::list<std::shared_ptr<void>> &info_list)> &cb,
+                               const std::function<std::shared_ptr<void>(std::shared_ptr<void> &&info)> &on_change) {
+        assert(cb);
+        cb(std::list<std::shared_ptr<void>>());
+    }
 
     // 获取媒体源类型
     MediaOriginType getOriginType() const;
@@ -320,7 +280,7 @@ public:
     // 停止发送ps-rtp
     bool stopSendRtp(const std::string &ssrc);
     // 获取丢包率
-    int getLossRate(mediakit::TrackType type);
+    float getLossRate(mediakit::TrackType type);
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
 
@@ -350,7 +310,7 @@ private:
     void emitEvent(bool regist);
 
 protected:
-    BytesSpeed _speed[TrackMax];
+    toolkit::BytesSpeed _speed[TrackMax];
 
 private:
     std::atomic_flag _owned { false };

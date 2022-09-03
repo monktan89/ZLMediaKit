@@ -578,6 +578,12 @@
 							"value": null,
 							"description": "hls保存根目录，置空使用默认目录",
 							"disabled": true
+						},
+						{
+							"key": "modify_stamp",
+							"value": null,
+							"description": "是否重新计算时间戳",
+							"disabled": true
 						}
 					]
 				}
@@ -816,6 +822,52 @@
 						"index",
 						"api",
 						"isMediaOnline"
+					],
+					"query": [
+						{
+							"key": "secret",
+							"value": "{{ZLMediaKit_secret}}",
+							"description": "api操作密钥(配置文件配置)，如果操作ip是127.0.0.1，则不需要此参数"
+						},
+						{
+							"key": "schema",
+							"value": "rtsp",
+							"description": "协议，例如 rtsp或rtmp"
+						},
+						{
+							"key": "vhost",
+							"value": "{{defaultVhost}}",
+							"description": "虚拟主机，例如__defaultVhost__"
+						},
+						{
+							"key": "app",
+							"value": "proxy",
+							"description": "应用名，例如 live"
+						},
+						{
+							"key": "stream",
+							"value": "1",
+							"description": "流id，例如 test"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "获取媒体流播放器列表(getMediaPlayerList)",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{ZLMediaKit_URL}}/index/api/getMediaPlayerList?secret={{ZLMediaKit_secret}}&schema=rtsp&vhost={{defaultVhost}}&app=proxy&stream=1",
+					"host": [
+						"{{ZLMediaKit_URL}}"
+					],
+					"path": [
+						"index",
+						"api",
+						"getMediaPlayerList"
 					],
 					"query": [
 						{

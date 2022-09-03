@@ -341,6 +341,7 @@ Value makeMediaSourceJson(MediaSource &media){
 
     //getLossRate有线程安全问题；使用getMediaInfo接口才能获取丢包率；getMediaList接口将忽略丢包率
     auto current_thread = media.getOwnerPoller()->isCurrentThread();
+    float last_loss = -1;
     for(auto &track : media.getTracks(false)){
         Value obj;
         auto codec_type = track->getTrackType();
@@ -349,7 +350,14 @@ Value makeMediaSourceJson(MediaSource &media){
         obj["ready"] = track->ready();
         obj["codec_type"] = codec_type;
         if (current_thread) {
-            obj["loss"] = media.getLossRate(codec_type);
+            //rtp推流只有一个统计器，但是可能有多个track，如果短时间多次获取间隔丢包率，第二次会获取为-1
+            auto loss = media.getLossRate(codec_type);
+            if (loss == -1) {
+                loss = last_loss;
+            } else {
+                last_loss = loss;
+            }
+            obj["loss"] = loss;
         }
         switch(codec_type){
             case TrackAudio : {
@@ -747,6 +755,37 @@ void installWebApi() {
         val["online"] = (bool) (MediaSource::find(allArgs["schema"],allArgs["vhost"],allArgs["app"],allArgs["stream"]));
     });
 
+    //获取媒体流播放器列表
+    //测试url http://127.0.0.1/index/api/getMediaPlayerList?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
+    api_regist("/index/api/getMediaPlayerList",[](API_ARGS_MAP_ASYNC){
+        CHECK_SECRET();
+        CHECK_ARGS("schema", "vhost", "app", "stream");
+        auto src = MediaSource::find(allArgs["schema"], allArgs["vhost"], allArgs["app"], allArgs["stream"]);
+        if (!src) {
+            throw ApiRetException("can not find the stream", API::NotFound);
+        }
+        src->getPlayerList(
+            [=](const std::list<std::shared_ptr<void>> &info_list) mutable {
+                val["code"] = API::Success;
+                auto &data = val["data"];
+                data = Value(arrayValue);
+                for (auto &info : info_list) {
+                    auto obj = static_pointer_cast<Value>(info);
+                    data.append(std::move(*obj));
+                }
+                invoker(200, headerOut, val.toStyledString());
+            },
+            [](std::shared_ptr<void> &&info) -> std::shared_ptr<void> {
+                auto obj = std::make_shared<Value>();
+                auto session = static_pointer_cast<Session>(info);
+                (*obj)["peer_ip"] = session->get_peer_ip();
+                (*obj)["peer_port"] = session->get_peer_port();
+                (*obj)["id"] = session->getIdentifier();
+                (*obj)["typeid"] = toolkit::demangle(typeid(*session).name());
+                return obj;
+            });
+    });
+
     //测试url http://127.0.0.1/index/api/getMediaInfo?schema=rtsp&vhost=__defaultVhost__&app=live&stream=obs
     api_regist("/index/api/getMediaInfo",[](API_ARGS_MAP_ASYNC){
         CHECK_SECRET();
@@ -1011,6 +1050,7 @@ void installWebApi() {
         getArgsValue(allArgs, "mp4_save_path", option.mp4_save_path);
         getArgsValue(allArgs, "mp4_max_second", option.mp4_max_second);
         getArgsValue(allArgs, "hls_save_path", option.hls_save_path);
+        getArgsValue(allArgs, "modify_stamp", option.modify_stamp);
 
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
