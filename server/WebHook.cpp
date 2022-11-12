@@ -47,9 +47,11 @@ const string kOnHttpAccess = HOOK_FIELD"on_http_access";
 const string kOnServerStarted = HOOK_FIELD"on_server_started";
 const string kOnServerKeepalive = HOOK_FIELD"on_server_keepalive";
 const string kOnSendRtpStopped = HOOK_FIELD"on_send_rtp_stopped";
+const string kOnRtpServerTimeout = HOOK_FIELD"on_rtp_server_timeout";
 const string kOnProxyPusherFailed = HOOK_FIELD"on_proxy_pusher_failed";
 const string kOnProxyPusherNoneReader = HOOK_FIELD"on_proxy_pusher_none_reader";
 const string kOnEventReport = HOOK_FIELD"on_event_report";
+
 const string kAdminParams = HOOK_FIELD"admin_params";
 const string kAliveInterval = HOOK_FIELD"alive_interval";
 const string kRetry = HOOK_FIELD"retry";
@@ -74,6 +76,7 @@ onceToken token([](){
     mINI::Instance()[kOnServerStarted] = "";
     mINI::Instance()[kOnServerKeepalive] = "";
     mINI::Instance()[kOnSendRtpStopped] = "";
+    mINI::Instance()[kOnRtpServerTimeout] = "";
     mINI::Instance()[kOnProxyPusherFailed] = "";
     mINI::Instance()[kOnProxyPusherNoneReader] = "";
     mINI::Instance()[kOnEventReport] = "";
@@ -704,6 +707,21 @@ void installWebHook(){
             //second参数规定该cookie超时时间，如果second为0，本次鉴权结果不缓存
             invoker(obj["err"].asString(),obj["path"].asString(),obj["second"].asInt());
         });
+    });
+
+    NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::KBroadcastRtpServerTimeout, [](BroadcastRtpServerTimeout) {
+        GET_CONFIG(string, rtp_server_timeout, Hook::kOnRtpServerTimeout);
+        if (!hook_enable || rtp_server_timeout.empty()) {
+            return;
+        }
+
+        ArgsType body;
+        body["local_port"] = local_port;
+        body["stream_id"] = stream_id;
+        body["tcp_mode"] = tcp_mode;
+        body["re_use_port"] = re_use_port;
+        body["ssrc"] = ssrc;
+        do_http_hook(rtp_server_timeout, body);
     });
 
     //汇报服务器重新启动
