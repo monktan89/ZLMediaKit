@@ -862,7 +862,7 @@ void installWebApi() {
     });
 #endif
 
-    //获取所有TcpSession列表信息
+    //获取所有Session列表信息
     //可以根据本地端口和远端ip来筛选
     //测试url(筛选某端口下的tcp会话) http://127.0.0.1/index/api/getAllSession?local_port=1935
     api_regist("/index/api/getAllSession",[](API_ARGS_MAP){
