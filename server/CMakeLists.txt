@@ -21,6 +21,12 @@
 # SOFTWARE.
 #
 
+# 私有化环境，k8s sts部署
+if(ENABLE_PRIVATE)
+  add_definitions(-DENABLE_PRIVATE)
+  message(STATUS "Enable private environment")
+endif()
+
 file(GLOB MediaServer_SRC_LIST ./*.cpp ./*.h)
 
 set(COMPILE_DEFINITIONS ${MK_COMPILE_DEFINITIONS})
