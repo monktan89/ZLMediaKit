@@ -441,7 +441,7 @@ static string dateStr() {
 class AsyncSenderData {
 public:
     friend class AsyncSender;
-    typedef std::shared_ptr<AsyncSenderData> Ptr;
+    using Ptr = std::shared_ptr<AsyncSenderData>;
     AsyncSenderData(const Session::Ptr &session, const HttpBody::Ptr &body, bool close_when_complete) {
         _session = dynamic_pointer_cast<HttpSession>(session);
         _body = body;
@@ -457,7 +457,7 @@ private:
 
 class AsyncSender {
 public:
-    typedef std::shared_ptr<AsyncSender> Ptr;
+    using Ptr = std::shared_ptr<AsyncSender>;
     static bool onSocketFlushed(const AsyncSenderData::Ptr &data) {
         if (data->_read_complete) {
             if (data->_close_when_complete) {
