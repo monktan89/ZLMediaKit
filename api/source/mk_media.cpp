@@ -19,9 +19,10 @@ using namespace mediakit;
 class MediaHelper : public MediaSourceEvent , public std::enable_shared_from_this<MediaHelper> {
 public:
     using Ptr = std::shared_ptr<MediaHelper>;
-    template<typename ...ArgsType>
-    MediaHelper(ArgsType &&...args){
-        _channel = std::make_shared<DevChannel>(std::forward<ArgsType>(args)...);
+    MediaHelper(const char *vhost, const char *app, const char *stream, float duration, const ProtocolOption &option) {
+        _poller = EventPollerPool::Instance().getPoller();
+        // 在poller线程中创建DevChannel(MultiMediaSourceMuxer)对象，确保严格的线程安全限制
+        _poller->sync([&]() { _channel = std::make_shared<DevChannel>(vhost, app, stream, duration, option); });
     }
 
     ~MediaHelper() = default;
@@ -98,11 +99,16 @@ protected:
 
     void onRegist(MediaSource &sender, bool regist) override{
         if (_on_regist) {
-            _on_regist(_on_regist_data.get(), &sender, regist);
+            _on_regist(_on_regist_data.get(), (mk_media_source)&sender, regist);
         }
     }
 
+    toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) {
+        return _poller;
+    }
+
 private:
+    EventPoller::Ptr _poller;
     DevChannel::Ptr _channel;
     on_mk_media_close _on_close = nullptr;
     on_mk_media_seek _on_seek = nullptr;
@@ -269,9 +275,9 @@ API_EXPORT int API_CALL mk_media_input_aac(mk_media ctx, const void *data, int l
 }
 
 API_EXPORT int API_CALL mk_media_input_pcm(mk_media ctx, void *data , int len, uint64_t pts){
-	assert(ctx && data && len > 0);
-	MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
-	return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
+    assert(ctx && data && len > 0);
+    MediaHelper::Ptr* obj = (MediaHelper::Ptr*) ctx;
+    return (*obj)->getChannel()->inputPCM((char*)data, len, pts);
 }
 
 API_EXPORT int API_CALL mk_media_input_audio(mk_media ctx, const void* data, int len, uint64_t dts){
@@ -319,5 +325,5 @@ API_EXPORT void API_CALL mk_media_stop_send_rtp(mk_media ctx, const char *ssrc){
 
 API_EXPORT mk_thread API_CALL mk_media_get_owner_thread(mk_media ctx) {
     MediaHelper::Ptr *obj = (MediaHelper::Ptr *)ctx;
-    return (*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource()).get();
+    return (mk_thread)(*obj)->getChannel()->getOwnerPoller(MediaSource::NullMediaSource()).get();
 }
