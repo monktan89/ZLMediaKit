@@ -384,7 +384,7 @@ Value makeMediaSourceJson(MediaSource &media){
                 int gop_size = video_track->getVideoGopSize();
                 int gop_interval_ms = video_track->getVideoGopInterval();
                 float fps = video_track->getVideoFps();
-                if (fps <= 1) {
+                if (fps <= 1 && gop_interval_ms) {
                     fps = gop_size * 1000.0 / gop_interval_ms;
                 }
                 obj["fps"] = round(fps);
@@ -1005,12 +1005,13 @@ void installWebApi() {
         CHECK_SECRET();
         CHECK_ARGS("schema", "vhost", "app", "stream", "dst_url");
         auto dst_url = decodeBase64(allArgs["dst_url"]);
+        auto retry_count = allArgs["retry_count"].empty() ? -1 : allArgs["retry_count"].as<int>();
         addStreamPusherProxy(allArgs["schema"],
                              allArgs["vhost"],
                              allArgs["app"],
                              allArgs["stream"],
                              decodeBase64(allArgs["dst_url"]),
-                             allArgs["retry_count"],
+                             retry_count,
                              allArgs["rtp_type"],
                              allArgs["timeout_sec"],
                              [invoker, val, headerOut, dst_url](const SockException &ex, const string &key) mutable {
@@ -1061,12 +1062,12 @@ void installWebApi() {
         CHECK_ARGS("vhost","app","stream","url");
 
         ProtocolOption option(allArgs);
-
+        auto retry_count = allArgs["retry_count"].empty()? -1: allArgs["retry_count"].as<int>();
         addStreamProxy(allArgs["vhost"],
                        allArgs["app"],
                        allArgs["stream"],
                        trim(allArgs["url"]),
-                       allArgs["retry_count"],
+                       retry_count,
                        option,
                        allArgs["rtp_type"],
                        allArgs["timeout_sec"],
@@ -1370,7 +1371,7 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
-    
+
     //设置录像流播放速度
     api_regist("/index/api/setRecordSpeed", [](API_ARGS_MAP_ASYNC) {
         CHECK_SECRET();
@@ -1450,7 +1451,7 @@ void installWebApi() {
             invoker(200, headerOut, val.toStyledString());
         });
     });
-	
+
     // 删除录像文件夹
     // http://127.0.0.1/index/api/deleteRecordDirectroy?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01-01
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
@@ -1467,7 +1468,7 @@ void installWebApi() {
         val["path"] = record_path;
         val["code"] = result;
     });
-	
+
     //获取录像文件夹列表或mp4文件列表
     //http://127.0.0.1/index/api/getMp4RecordFile?vhost=__defaultVhost__&app=live&stream=ss&period=2020-01
     api_regist("/index/api/getMp4RecordFile", [](API_ARGS_MAP){

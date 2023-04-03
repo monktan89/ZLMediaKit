@@ -121,7 +121,7 @@ std::string getLocalIp() {
 class CMD_main : public CMD {
 public:
     CMD_main() {
-        _parser.reset(new OptionParser(nullptr));
+        _parser = std::make_shared<OptionParser>(nullptr);
 
 #if !defined(_WIN32)
         (*_parser) << Option('d',/*该选项简称，如果是\x00则说明无简称*/
