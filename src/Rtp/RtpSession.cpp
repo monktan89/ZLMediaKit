@@ -36,7 +36,6 @@ void RtpSession::setParams(mINI &ini) {
 }
 
 RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
-    DebugP(this);
     socklen_t addr_len = sizeof(_addr);
     getpeername(sock->rawFD(), (struct sockaddr *)&_addr, &addr_len);
     _is_udp = sock->sockType() == SockNum::Sock_UDP;
@@ -47,7 +46,6 @@ RtpSession::RtpSession(const Socket::Ptr &sock) : Session(sock) {
 }
 
 RtpSession::~RtpSession() {
-    DebugP(this);
     if(_process){
         RtpSelector::Instance().delProcess(_stream_id,_process.get());
     }
@@ -62,7 +60,7 @@ void RtpSession::onRecv(const Buffer::Ptr &data) {
 }
 
 void RtpSession::onError(const SockException &err) {
-    WarnP(this) << _stream_id << " " << err.what();
+    WarnP(this) << _stream_id << " " << err;
 
     // 断流事件上报，用于统计
     if (!_stream_id.empty() && _stream_id != "00000000" && _stream_id != "B1000000" ){
@@ -149,7 +147,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         uint32_t rtp_ssrc = 0;
         RtpSelector::getSSRC(data, len, rtp_ssrc);
         if (rtp_ssrc != _ssrc) {
-            WarnP(this) << "ssrc不匹配,rtp已丢弃:" << rtp_ssrc << " != " << _ssrc;
+            WarnP(this) << "ssrc mismatched, rtp dropped: " << rtp_ssrc << " != " << _ssrc;
             return;
         }
         _process->inputRtp(false, getSock(), data, len, (struct sockaddr *)&_addr);
