@@ -147,9 +147,15 @@ bool HttpSession::checkWebSocket(){
         _live_over_websocket = true;
         sendResponse(101, false, nullptr, headerOut, nullptr, true);
     };
+    
+    auto res_cb_flv = [this, headerOut]() mutable {
+        _live_over_websocket = true;
+        headerOut.emplace("Cache-Control", "no-store");
+        sendResponse(101, false, nullptr, headerOut, nullptr, true);
+    };
 
     //判断是否为websocket-flv
-    if (checkLiveStreamFlv(res_cb)) {
+    if (checkLiveStreamFlv(res_cb_flv)) {
         //这里是websocket-flv直播请求
         return true;
     }
@@ -202,7 +208,7 @@ bool HttpSession::checkLiveStream(const string &schema, const string  &url_suffi
     //解析带上协议+参数完整的url
     _mediaInfo.parse(schema + "://" + _parser["Host"] + url);
 
-    if (_mediaInfo._app.empty() || _mediaInfo._streamid.empty()) {
+    if (_mediaInfo.app.empty() || _mediaInfo.stream.empty()) {
         //url不合法
         return false;
     }
@@ -349,7 +355,9 @@ bool HttpSession::checkLiveStreamFlv(const function<void()> &cb){
         assert(rtmp_src);
         if (!cb) {
             //找到源，发送http头，负载后续发送
-            sendResponse(200, false, HttpFileManager::getContentType(".flv").data(), KeyValue(), nullptr, true);
+            KeyValue headerOut;
+            headerOut["Cache-Control"] = "no-store";
+            sendResponse(200, false, HttpFileManager::getContentType(".flv").data(), headerOut, nullptr, true);
         } else {
             //自定义发送http头
             cb();
