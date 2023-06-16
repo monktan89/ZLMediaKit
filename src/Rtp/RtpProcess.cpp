@@ -175,7 +175,7 @@ bool RtpProcess::alive() {
         if(_last_check_alive.elapsedTime() > 5 * 60 * 1000){
             //最多暂停5分钟的rtp超时检测，因为NAT映射有效期一般不会太长
             _stop_rtp_check = false;
-            WarnL << "stream: " << _media_info._streamid <<
+            WarnL << "stream: " << _media_info.stream <<
                 ", StopCheckRtp timeout, elapsedTime: " << _last_check_alive.elapsedTime();
         } else {
             return true;
@@ -187,12 +187,12 @@ bool RtpProcess::alive() {
     if (_last_frame_time.elapsedTime() / 1000 < timeoutSec) {
         return true;
     }
-    WarnL << "stream: " << _media_info._streamid << ", rtp receive timeout";
+    WarnL << "stream: " << _media_info.stream << ", rtp receive timeout";
     return false;
 }
 
 void RtpProcess::setStopCheckRtp(bool is_check){
-    InfoL << "stream: " << _media_info._streamid << ", is_check: " << is_check;
+    InfoL << "stream: " << _media_info.stream << ", is_check: " << is_check;
     _stop_rtp_check = is_check;
     if (!is_check) {
         _last_frame_time.resetTime();
