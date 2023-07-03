@@ -304,7 +304,8 @@ void RtmpPusher::onRtmpChunk(RtmpPacket::Ptr packet) {
 void RtmpPusher::onStreamFreeze(bool is_freeze) {
     auto src = _publish_src.lock();
     if(is_freeze && src) {
-        std::string key = src->getVhost()+ "/" + src->getApp() + "/" + src->getId();
+        auto tupe = src->getMediaTuple();
+        std::string key = tupe.vhost + "/" + tupe.app + "/" + tupe.stream;
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastProxyPusherNoneReader, key);
     }
 }
