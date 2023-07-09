@@ -71,6 +71,14 @@ static string getTrackInfoStr(const TrackSource *track_src){
     return std::move(codec_info);
 }
 
+const ProtocolOption &MultiMediaSourceMuxer::getOption() const {
+    return _option;
+}
+
+const MediaTuple &MultiMediaSourceMuxer::getMediaTuple() const {
+    return _tuple;
+}
+
 std::string MultiMediaSourceMuxer::shortUrl() const {
     auto ret = getOriginUrl(MediaSource::NullMediaSource());
     if (!ret.empty()) {
@@ -80,6 +88,10 @@ std::string MultiMediaSourceMuxer::shortUrl() const {
 }
 
 MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_sec, const ProtocolOption &option): _tuple(tuple) {
+    if (!option.stream_replace.empty()) {
+        // 支持在on_publish hook中替换stream_id
+        _tuple.stream = option.stream_replace;
+    }
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
     _option = option;
@@ -364,6 +376,10 @@ EventPoller::Ptr MultiMediaSourceMuxer::getOwnerPoller(MediaSource &sender) {
         // listener未重载getOwnerPoller
         return _poller;
     }
+}
+
+std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSource &sender) {
+    return shared_from_this();
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {

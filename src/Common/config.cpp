@@ -102,6 +102,7 @@ namespace Protocol {
 const string kModifyStamp = PROTOCOL_FIELD "modify_stamp";
 const string kEnableAudio = PROTOCOL_FIELD "enable_audio";
 const string kAddMuteAudio = PROTOCOL_FIELD "add_mute_audio";
+const string kAutoClose = PROTOCOL_FIELD "auto_close";
 const string kContinuePushMS = PROTOCOL_FIELD "continue_push_ms";
 
 const string kEnableHls = PROTOCOL_FIELD "enable_hls";
@@ -129,6 +130,7 @@ static onceToken token([]() {
     mINI::Instance()[kEnableAudio] = 1;
     mINI::Instance()[kAddMuteAudio] = 1;
     mINI::Instance()[kContinuePushMS] = 15000;
+    mINI::Instance()[kAutoClose] = 0;
 
     mINI::Instance()[kEnableHls] = 1;
     mINI::Instance()[kEnableHlsFmp4] = 0;

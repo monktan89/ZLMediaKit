@@ -112,7 +112,7 @@ extern const std::string kBroadcastStreamNoneReader;
 
 // rtp推流被动停止时触发
 extern const std::string kBroadcastSendRtpStopped;
-#define BroadcastSendRtpStopped MultiMediaSourceMuxer &sender, const std::string &ssrc, const SockException &ex
+#define BroadcastSendRtpStoppedArgs MultiMediaSourceMuxer &sender, const std::string &ssrc, const SockException &ex
 
 // 更新配置文件事件广播,执行loadIniConfig函数加载配置文件成功后会触发该广播
 extern const std::string kBroadcastReloadConfig;
@@ -120,7 +120,7 @@ extern const std::string kBroadcastReloadConfig;
 
 // rtp server 超时
 extern const std::string KBroadcastRtpServerTimeout;
-#define BroadcastRtpServerTimeout uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
+#define BroadcastRtpServerTimeoutArgs uint16_t &local_port, const string &stream_id,int &tcp_mode, bool &re_use_port, uint32_t &ssrc
 
 #define ReloadConfigTag ((void *)(0xFF))
 #define RELOAD_KEY(arg, key)                                                                                           \
@@ -203,6 +203,10 @@ extern const std::string kModifyStamp;
 extern const std::string kEnableAudio;
 //添加静音音频，在关闭音频时，此开关无效
 extern const std::string kAddMuteAudio;
+// 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+// 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+// 而是将直接关闭流
+extern const std::string kAutoClose;
 //断连续推延时，单位毫秒，默认采用配置文件
 extern const std::string kContinuePushMS;
 

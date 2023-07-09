@@ -41,6 +41,7 @@ enum class MediaOriginType : uint8_t {
 std::string getOriginTypeString(MediaOriginType type);
 
 class MediaSource;
+class MultiMediaSourceMuxer;
 class MediaSourceEvent {
 public:
     friend class MediaSource;
@@ -88,6 +89,8 @@ public:
     virtual bool isRecording(MediaSource &sender, Recorder::type type) { return false; }
     // 获取所有track相关信息
     virtual std::vector<Track::Ptr> getMediaTracks(MediaSource &sender, bool trackReady = true) const { return std::vector<Track::Ptr>(); };
+    // 获取MultiMediaSourceMuxer对象
+    virtual std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) { return nullptr; }
 
     class SendRtpArgs {
     public:
@@ -148,6 +151,11 @@ public:
     bool enable_audio;
     //添加静音音频，在关闭音频时，此开关无效
     bool add_mute_audio;
+    // 无人观看时，是否直接关闭(而不是通过on_none_reader hook返回close)
+    // 此配置置1时，此流如果无人观看，将不触发on_none_reader hook回调，
+    // 而是将直接关闭流
+    bool auto_close;
+
     //断连续推延时，单位毫秒，默认采用配置文件
     uint32_t continue_push_ms;
 
@@ -187,12 +195,16 @@ public:
     //hls录制保存路径
     std::string hls_save_path;
 
+    // 支持通过on_publish返回值替换stream_id
+    std::string stream_replace;
+
     template <typename MAP>
     ProtocolOption(const MAP &allArgs) : ProtocolOption() {
 #define GET_OPT_VALUE(key) getArgsValue(allArgs, #key, key)
         GET_OPT_VALUE(modify_stamp);
         GET_OPT_VALUE(enable_audio);
         GET_OPT_VALUE(add_mute_audio);
+        GET_OPT_VALUE(auto_close);
         GET_OPT_VALUE(continue_push_ms);
 
         GET_OPT_VALUE(enable_hls);
@@ -214,6 +226,7 @@ public:
         GET_OPT_VALUE(mp4_save_path);
 
         GET_OPT_VALUE(hls_save_path);
+        GET_OPT_VALUE(stream_replace);
     }
 
 private:
@@ -253,6 +266,7 @@ public:
     bool stopSendRtp(MediaSource &sender, const std::string &ssrc) override;
     float getLossRate(MediaSource &sender, TrackType type) override;
     toolkit::EventPoller::Ptr getOwnerPoller(MediaSource &sender) override;
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer(MediaSource &sender) override;
 
 private:
     std::weak_ptr<MediaSourceEvent> _listener;
@@ -326,7 +340,7 @@ public:
     // 设置监听者
     virtual void setListener(const std::weak_ptr<MediaSourceEvent> &listener);
     // 获取监听者
-    std::weak_ptr<MediaSourceEvent> getListener(bool next = false) const;
+    std::weak_ptr<MediaSourceEvent> getListener() const;
 
     // 本协议获取观看者个数，可能返回本协议的观看人数，也可能返回总人数
     virtual int readerCount() = 0;
@@ -368,6 +382,8 @@ public:
     float getLossRate(mediakit::TrackType type);
     // 获取所在线程
     toolkit::EventPoller::Ptr getOwnerPoller();
+    // 获取MultiMediaSourceMuxer对象
+    std::shared_ptr<MultiMediaSourceMuxer> getMuxer();
 
     ////////////////static方法，查找或生成MediaSource////////////////
 
