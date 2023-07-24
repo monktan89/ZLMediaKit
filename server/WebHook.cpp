@@ -339,7 +339,6 @@ static mINI jsonToMini(const Value &obj) {
 
 void installWebHook() {
     GET_CONFIG(bool, hook_enable, Hook::kEnable);
-    GET_CONFIG(string, hook_adminparams, Hook::kAdminParams);
 
     //转推流失败后广播
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastProxyPusherFailed, [](BroadcastProxyPusherFailedArgs){
@@ -394,7 +393,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPublish, [](BroadcastMediaPublishArgs) {
         GET_CONFIG(string, hook_publish, Hook::kOnPublish);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_publish.empty() || sender.get_peer_ip() == "127.0.0.1") {
             invoker("", ProtocolOption());
             return;
         }
@@ -419,7 +418,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastMediaPlayed, [](BroadcastMediaPlayedArgs) {
         GET_CONFIG(string, hook_play, Hook::kOnPlay);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_play.empty() || sender.get_peer_ip() == "127.0.0.1") {
             invoker("");
             return;
         }
@@ -433,7 +432,7 @@ void installWebHook() {
 
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastFlowReport, [](BroadcastFlowReportArgs) {
         GET_CONFIG(string, hook_flowreport, Hook::kOnFlowReport);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_flowreport.empty() || sender.get_peer_ip() == "127.0.0.1") {
             return;
         }
         auto body = make_json(args);
@@ -452,7 +451,7 @@ void installWebHook() {
     // 监听kBroadcastOnGetRtspRealm事件决定rtsp链接是否需要鉴权(传统的rtsp鉴权方案)才能访问
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastOnGetRtspRealm, [](BroadcastOnGetRtspRealmArgs) {
         GET_CONFIG(string, hook_rtsp_realm, Hook::kOnRtspRealm);
-        if (!hook_enable || args.param_strs == hook_adminparams || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1") {
+        if (!hook_enable || hook_rtsp_realm.empty() || sender.get_peer_ip() == "127.0.0.1") {
             // 无需认证
             invoker("");
             return;
@@ -679,7 +678,7 @@ void installWebHook() {
     // 追踪用户的目的是为了缓存上次鉴权结果，减少鉴权次数，提高性能
     NoticeCenter::Instance().addListener(&web_hook_tag, Broadcast::kBroadcastHttpAccess, [](BroadcastHttpAccessArgs) {
         GET_CONFIG(string, hook_http_access, Hook::kOnHttpAccess);
-        if (sender.get_peer_ip() == "127.0.0.1" || parser.params() == hook_adminparams) {
+        if (sender.get_peer_ip() == "127.0.0.1") {
             // 如果是本机或超级管理员访问，那么不做访问鉴权；权限有效期1个小时
             invoker("", "", 60 * 60);
             return;
