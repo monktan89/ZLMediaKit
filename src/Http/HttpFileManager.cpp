@@ -250,7 +250,7 @@ static bool emitHlsPlayed(const Parser &parser, const MediaInfo &media_info, con
         //cookie有效期为kHlsCookieSecond
         invoker(err, "", kHlsCookieSecond);
     };
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, static_cast<SockInfo &>(sender));
+    bool flag = NOTICE_EMIT(BroadcastMediaPlayedArgs, Broadcast::kBroadcastMediaPlayed, media_info, auth_invoker, sender);
     if (!flag) {
         //未开启鉴权，那么允许播放
         auth_invoker("");
@@ -383,7 +383,7 @@ static void canAccessPath(Session &sender, const Parser &parser, const MediaInfo
     }
 
     // 事件未被拦截，则认为是http下载请求
-    bool flag = NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, static_cast<SockInfo &>(sender));
+    bool flag = NOTICE_EMIT(BroadcastHttpAccessArgs, Broadcast::kBroadcastHttpAccess, parser, path, is_dir, accessPathInvoker, sender);
     if (!flag) {
         // 此事件无人监听，我们默认都有权限访问
         callback("", nullptr);
@@ -524,7 +524,7 @@ static void accessFile(Session &sender, const Parser &parser, const MediaInfo &m
     });
 }
 
-static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender){
+static string getFilePath(const Parser &parser,const MediaInfo &media_info, Session &sender) {
     GET_CONFIG(bool, enableVhost, General::kEnableVhost);
     GET_CONFIG(string, rootPath, Http::kRootPath);
     GET_CONFIG_FUNC(StrCaseMap, virtualPathMap, Http::kVirtualPath, [](const string &str) {
@@ -549,7 +549,14 @@ static string getFilePath(const Parser &parser,const MediaInfo &media_info, Sess
         }
     }
     auto ret = File::absolutePath(enableVhost ? media_info.vhost + url : url, path);
-    NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastHttpBeforeAccess, parser, ret, static_cast<SockInfo &>(sender));
+    auto http_root = File::absolutePath(enableVhost ? media_info.vhost + "/" : "/", path);
+    if (!start_with(ret, http_root)) {
+        // 访问的http文件不得在http根目录之外
+        throw std::runtime_error("Attempting to access files outside of the http root directory");
+    }
+    // 替换url，防止返回的目录索引网页被注入非法内容
+    const_cast<Parser&>(parser).setUrl("/" + ret.substr(http_root.size()));
+    NOTICE_EMIT(BroadcastHttpBeforeAccessArgs, Broadcast::kBroadcastHttpBeforeAccess, parser, ret, sender);
     return ret;
 }
 
