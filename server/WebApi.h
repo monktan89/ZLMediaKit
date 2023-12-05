@@ -218,7 +218,7 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
 //检查http url中或body中或http header参数是否为空的宏
 #define CHECK_ARGS(...)  \
     if(!checkArgs(allArgs,##__VA_ARGS__)){ \
-        throw InvalidArgsException("缺少必要参数:" #__VA_ARGS__); \
+        throw InvalidArgsException("Required parameter missed: " #__VA_ARGS__); \
     }
 
 // 检查http参数中是否附带secret密钥的宏，127.0.0.1的ip不检查密钥
@@ -231,7 +231,7 @@ bool checkArgs(Args &args, const First &first, const KeyTypes &...keys) {
         } \
         CHECK_ARGS("secret"); \
         if (api_secret != allArgs["secret"]) { \
-            throw AuthException("secret错误"); \
+            throw AuthException("Incorrect secret"); \
         } \
     } while(false);
 
@@ -247,6 +247,6 @@ bool closeRtpServer(const std::string &stream_id);
 Json::Value makeMediaSourceJson(mediakit::MediaSource &media);
 void getStatisticJson(const std::function<void(Json::Value &val)> &cb);
 void addStreamProxy(const std::string &vhost, const std::string &app, const std::string &stream, const std::string &url, int retry_count,
-                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec,
+                    const mediakit::ProtocolOption &option, int rtp_type, float timeout_sec, const toolkit::mINI &args,
                     const std::function<void(const toolkit::SockException &ex, const std::string &key)> &cb);
 #endif //ZLMEDIAKIT_WEBAPI_H
