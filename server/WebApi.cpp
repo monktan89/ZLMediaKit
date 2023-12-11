@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+ * Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
  *
- * This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+ * This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
  *
- * Use of this source code is governed by MIT license that can be found in the
+ * Use of this source code is governed by MIT-like license that can be found in the
  * LICENSE file in the root of the source tree. All contributing project authors
  * may be found in the AUTHORS file in the root of the source tree.
  */
@@ -561,6 +561,9 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
     auto player = std::make_shared<PlayerProxy>(vhost, app, stream, option, real_retry_count);
     s_proxyMap[key] = player;
 
+    // 先透传参数
+    player->mINI::operator=(args);
+
     //指定RTP over TCP(播放rtsp时有效)
     (*player)[Client::kRtpType] = rtp_type;
 
@@ -585,7 +588,6 @@ void addStreamProxy(const string &vhost, const string &app, const string &stream
         lock_guard<recursive_mutex> lck(s_proxyMapMtx);
         s_proxyMap.erase(key);
     });
-    player->mINI::operator=(args);
     player->play(url);
 };
 
@@ -1779,8 +1781,8 @@ void installWebApi() {
         auto offer = allArgs.getArgs();
         CHECK(!offer.empty(), "http body(webrtc offer sdp) is empty");
 
-        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type,
-                                                     WebRtcArgsImp(allArgs, sender.getIdentifier()),
+        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        WebRtcPluginManager::Instance().getAnswerSdp(static_cast<Session&>(sender), type, *args,
                                                      [invoker, val, offer, headerOut](const WebRtcInterface &exchanger) mutable {
             //设置返回类型
             headerOut["Content-Type"] = HttpFileManager::getContentType(".json");
@@ -1807,7 +1809,8 @@ void installWebApi() {
 
         auto &session = static_cast<Session&>(sender);
         auto location = std::string("http") + (session.overSsl() ? "s" : "") + "://" + allArgs["host"] + delete_webrtc_url;
-        WebRtcPluginManager::Instance().getAnswerSdp(session, type, WebRtcArgsImp(allArgs, sender.getIdentifier()),
+        auto args = std::make_shared<WebRtcArgsImp>(allArgs, sender.getIdentifier());
+        WebRtcPluginManager::Instance().getAnswerSdp(session, type, *args,
                                                      [invoker, offer, headerOut, location](const WebRtcInterface &exchanger) mutable {
                 // 设置跨域
                 headerOut["Access-Control-Allow-Origin"] = "*";
@@ -1865,6 +1868,8 @@ void installWebApi() {
         CHECK_ARGS("vhost", "app", "stream", "file_path");
 
         ProtocolOption option;
+        // mp4支持多track
+        option.max_track = 16;
         // 默认解复用mp4不生成mp4
         option.enable_mp4 = false;
         // 但是如果参数明确指定开启mp4, 那么也允许之

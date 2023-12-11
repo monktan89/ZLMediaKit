@@ -1,9 +1,9 @@
 ﻿/*
-* Copyright (c) 2016 The ZLMediaKit project authors. All Rights Reserved.
+* Copyright (c) 2016-present The ZLMediaKit project authors. All Rights Reserved.
 *
-* This file is part of ZLMediaKit(https://github.com/xia-chu/ZLMediaKit).
+* This file is part of ZLMediaKit(https://github.com/ZLMediaKit/ZLMediaKit).
 *
-* Use of this source code is governed by MIT license that can be found in the
+* Use of this source code is governed by MIT-like license that can be found in the
 * LICENSE file in the root of the source tree. All contributing project authors
 * may be found in the AUTHORS file in the root of the source tree.
 */
@@ -177,11 +177,8 @@ MultiMediaSourceMuxer::MultiMediaSourceMuxer(const MediaTuple& tuple, float dur_
     _poller = EventPollerPool::Instance().getPoller();
     _create_in_poller = _poller->isCurrentThread();
     _option = option;
-    if (dur_sec > 0.01) {
-        // 点播
-        _stamp[TrackVideo].setPlayBack();
-        _stamp[TrackAudio].setPlayBack();
-    }
+    _dur_sec = dur_sec;
+    setMaxTrackCount(option.max_track);
 
     if (option.enable_rtmp) {
         _rtmp = std::make_shared<RtmpMediaSourceMuxer>(_tuple, option, std::make_shared<TitleMeta>(dur_sec));
@@ -473,6 +470,12 @@ std::shared_ptr<MultiMediaSourceMuxer> MultiMediaSourceMuxer::getMuxer(MediaSour
 }
 
 bool MultiMediaSourceMuxer::onTrackReady(const Track::Ptr &track) {
+    auto &stamp = _stamps[track->getIndex()];
+    if (_dur_sec > 0.01) {
+        // 点播
+        stamp.setPlayBack();
+    }
+
     bool ret = false;
     if (_rtmp) {
         ret = _rtmp->addTrack(track) ? true : ret;
@@ -545,10 +548,14 @@ void MultiMediaSourceMuxer::onAllTrackReady() {
         createGopCacheIfNeed();
     }
 #endif
-    auto tracks = getTracks(false);
-    if (tracks.size() >= 2) {
-        // 音频时间戳同步于视频，因为音频时间戳被修改后不影响播放
-        _stamp[TrackAudio].syncTo(_stamp[TrackVideo]);
+
+    Stamp *first = nullptr;
+    for (auto &pr : _stamps) {
+        if (!first) {
+            first = &pr.second;
+        } else {
+            pr.second.syncTo(*first);
+        }
     }
     InfoL << "stream: " << shortUrl() << " , codec info: " << getTrackInfoStr(this);
 }
@@ -598,7 +605,7 @@ void MultiMediaSourceMuxer::resetTracks() {
 bool MultiMediaSourceMuxer::onTrackFrame(const Frame::Ptr &frame) {
     if (_option.modify_stamp != ProtocolOption::kModifyStampOff) {
         // 时间戳不采用原始的绝对时间戳
-        const_cast<Frame::Ptr&>(frame) = std::make_shared<FrameStamp>(frame, _stamp[frame->getTrackType()], _option.modify_stamp);
+        const_cast<Frame::Ptr&>(frame) = std::make_shared<FrameStamp>(frame, _stamps[frame->getIndex()], _option.modify_stamp);
     }
     return _paced_sender ? _paced_sender->inputFrame(frame) : onTrackFrame_l(frame);
 }
