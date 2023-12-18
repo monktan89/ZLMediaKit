@@ -46,11 +46,7 @@ RtpSession::RtpSession(const Socket::Ptr &sock)
     }
 }
 
-RtpSession::~RtpSession() {
-    if (_process) {
-        RtpSelector::Instance().delProcess(_stream_id, _process.get());
-    }
-}
+RtpSession::~RtpSession() = default;
 
 void RtpSession::onRecv(const Buffer::Ptr &data) {
     if (_is_udp) {
@@ -80,6 +76,10 @@ void RtpSession::onError(const SockException &err) {
 
         std::string appName = "rtp";
         NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, appName, _stream_id, type, errMsg);
+    }
+
+    if (_process) {
+        RtpSelector::Instance().delProcess(_stream_id, _process.get());
     }
 }
 
