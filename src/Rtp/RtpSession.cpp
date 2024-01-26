@@ -80,6 +80,7 @@ void RtpSession::onError(const SockException &err) {
 
     if (_process) {
         RtpSelector::Instance().delProcess(_stream_id, _process.get());
+        _process = nullptr;
     }
 }
 
