@@ -62,6 +62,10 @@
 #include "version.h"
 #endif
 
+#if defined(ENABLE_X264) && defined (ENABLE_FFMPEG)
+#include "VideoStack.h"
+#endif
+
 #include "Util/base64.h"
 
 using namespace std;
@@ -1925,7 +1929,7 @@ void installWebApi() {
         std::set<std::string> ret;
         auto vec = toolkit::split(str, ";");
         for (auto &item : vec) {
-            auto root = File::absolutePath(item, "", true);
+            auto root = File::absolutePath("", item, true);
             ret.emplace(std::move(root));
         }
         return ret;
@@ -1971,6 +1975,36 @@ void installWebApi() {
             invoker(401, StrCaseMap {}, "None http access event listener");
         }
     });
+
+#if defined(ENABLE_X264) && defined(ENABLE_FFMPEG)
+    VideoStackManager::Instance().loadBgImg("novideo.yuv");
+    NoticeCenter::Instance().addListener(nullptr, Broadcast::kBroadcastStreamNoneReader, [](BroadcastStreamNoneReaderArgs) {
+        auto id = sender.getMediaTuple().stream;
+        VideoStackManager::Instance().stopVideoStack(id);
+        InfoL << "VideoStack: " << id <<" stop";
+    });
+
+    api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
+        CHECK_SECRET();
+        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.getArgs());
+        if (!ret) {
+            invoker(200, headerOut, "success");
+        } else {
+            invoker(200, headerOut, "failed");
+        }
+    });
+
+    api_regist("/index/api/stack/stop", [](API_ARGS_MAP_ASYNC) {
+        CHECK_SECRET();
+        CHECK_ARGS("id");
+        auto ret = VideoStackManager::Instance().stopVideoStack(allArgs["id"]);
+        if (!ret) {
+            invoker(200, headerOut, "success");
+        } else {
+            invoker(200, headerOut, "failed");
+        }
+    });
+#endif
 }
 
 void unInstallWebApi(){
