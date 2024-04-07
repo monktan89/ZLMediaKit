@@ -396,6 +396,7 @@ void dumpMediaTuple(const MediaTuple &tuple, Json::Value& item) {
     item[VHOST_KEY] = tuple.vhost;
     item["app"] = tuple.app;
     item["stream"] = tuple.stream;
+    item["params"] = tuple.params;
 }
 
 Value makeMediaSourceJson(MediaSource &media){
@@ -1604,7 +1605,7 @@ void installWebApi() {
     api_regist("/index/api/deleteRecordDirectory", [](API_ARGS_MAP) {
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream", "period");
-        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
         record_path = record_path + period + "/";
@@ -1643,7 +1644,7 @@ void installWebApi() {
     api_regist("/index/api/getMP4RecordFile", [](API_ARGS_MAP){
         CHECK_SECRET();
         CHECK_ARGS("vhost", "app", "stream");
-        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"]};
+        auto tuple = MediaTuple{allArgs["vhost"], allArgs["app"], allArgs["stream"], ""};
         auto record_path = Recorder::getRecordPath(Recorder::type_mp4, tuple, allArgs["customized_path"]);
         auto period = allArgs["period"];
 
@@ -1964,7 +1965,7 @@ void installWebApi() {
 
     api_regist("/index/api/stack/start", [](API_ARGS_JSON_ASYNC) {
         CHECK_SECRET();
-        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.getArgs());
+        auto ret = VideoStackManager::Instance().startVideoStack(allArgs.args);
         val["code"] = ret;
         val["msg"] = ret ? "failed" : "success";
         invoker(200, headerOut, val.toStyledString());
