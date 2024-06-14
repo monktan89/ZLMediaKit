@@ -290,198 +290,199 @@ int start_main(int argc,char *argv[]) {
         }
 
         if (!File::is_dir(ssl_file)) {
-        //如果自定义了mediaserverid，在这里覆盖配置文件
-        if (!msid.empty()) {
-            mINI::Instance()[General::kMediaServerId] = msid;
-        } else {
+            //如果自定义了mediaserverid，在这里覆盖配置文件
+            if (!msid.empty()) {
+                mINI::Instance()[General::kMediaServerId] = msid;
+            } else {
 #ifdef ENABLE_PRIVATE
-            const std::string env_name = "PRIVATE_MEDIASERVER_UUID";
-            char *env_value = nullptr;
-            env_value = getenv(env_name.c_str());
-            if (env_value == nullptr) {
-                ErrorL << "get private environment msid value failed!";
-                return -1;
-            }
-            msid = env_value;
-            mINI::Instance()[General::kMediaServerId] = msid;
-#else
-            mINI::Instance()[General::kMediaServerId] = getLocalIp();
-#endif
-        }
-
-        GET_CONFIG(string, media_server_id, General::kMediaServerId);
-        InfoL << "本服务器运行ID为: " << media_server_id;
-
-        if(!File::is_dir(ssl_file)){
-            // 不是文件夹，加载证书，证书包含公钥和私钥
-            SSL_Initor::Instance().loadCertificate(ssl_file.data());
-        } else {
-            //加载文件夹下的所有证书
-            File::scanDir(ssl_file,[](const string &path, bool isDir){
-                if (!isDir) {
-                    // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
-                    SSL_Initor::Instance().loadCertificate(path.data());
+                const std::string env_name = "PRIVATE_MEDIASERVER_UUID";
+                char *env_value = nullptr;
+                env_value = getenv(env_name.c_str());
+                if (env_value == nullptr) {
+                    ErrorL << "get private environment msid value failed!";
+                    return -1;
                 }
-                return true;
-            });
-        }
+                msid = env_value;
+                mINI::Instance()[General::kMediaServerId] = msid;
+#else
+                mINI::Instance()[General::kMediaServerId] = getLocalIp();
+#endif
+            }
 
-        uint16_t shellPort = mINI::Instance()[Shell::kPort];
-        uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
-        uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
-        uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
-        uint16_t rtmpsPort = mINI::Instance()[Rtmp::kSSLPort];
-        uint16_t httpPort = mINI::Instance()[Http::kPort];
-        uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
-        uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
+            GET_CONFIG(string, media_server_id, General::kMediaServerId);
+            InfoL << "本服务器运行ID为: " << media_server_id;
 
-        //设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
-        //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
+            if(!File::is_dir(ssl_file)){
+                // 不是文件夹，加载证书，证书包含公钥和私钥
+                SSL_Initor::Instance().loadCertificate(ssl_file.data());
+            } else {
+                //加载文件夹下的所有证书
+                File::scanDir(ssl_file,[](const string &path, bool isDir){
+                    if (!isDir) {
+                        // 最后的一个证书会当做默认证书(客户端ssl握手时未指定主机)
+                        SSL_Initor::Instance().loadCertificate(path.data());
+                    }
+                    return true;
+                });
+            }
 
-        EventPollerPool::setPoolSize(threads);
-        WorkThreadPool::setPoolSize(threads);
-        EventPollerPool::enableCpuAffinity(affinity);
+            uint16_t shellPort = mINI::Instance()[Shell::kPort];
+            uint16_t rtspPort = mINI::Instance()[Rtsp::kPort];
+            uint16_t rtspsPort = mINI::Instance()[Rtsp::kSSLPort];
+            uint16_t rtmpPort = mINI::Instance()[Rtmp::kPort];
+            uint16_t rtmpsPort = mINI::Instance()[Rtmp::kSSLPort];
+            uint16_t httpPort = mINI::Instance()[Http::kPort];
+            uint16_t httpsPort = mINI::Instance()[Http::kSSLPort];
+            uint16_t rtpPort = mINI::Instance()[RtpProxy::kPort];
 
-        //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
-        //测试方法:telnet 127.0.0.1 9000
-        auto shellSrv = std::make_shared<TcpServer>();
+            //设置poller线程数和cpu亲和性,该函数必须在使用ZLToolKit网络相关对象之前调用才能生效
+            //如果需要调用getSnap和addFFmpegSource接口，可以关闭cpu亲和性
 
-        //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
-        auto rtspSrv = std::make_shared<TcpServer>();
-        auto rtspSSLSrv = std::make_shared<TcpServer>();
+            EventPollerPool::setPoolSize(threads);
+            WorkThreadPool::setPoolSize(threads);
+            EventPollerPool::enableCpuAffinity(affinity);
 
-        //rtmp[s]服务器
-        auto rtmpSrv = std::make_shared<TcpServer>();
-        auto rtmpsSrv = std::make_shared<TcpServer>();
+            //简单的telnet服务器，可用于服务器调试，但是不能使用23端口，否则telnet上了莫名其妙的现象
+            //测试方法:telnet 127.0.0.1 9000
+            auto shellSrv = std::make_shared<TcpServer>();
 
-        //http[s]服务器
-        auto httpSrv = std::make_shared<TcpServer>();
-        auto httpsSrv = std::make_shared<TcpServer>();
+            //rtsp[s]服务器, 可用于诸如亚马逊echo show这样的设备访问
+            auto rtspSrv = std::make_shared<TcpServer>();
+            auto rtspSSLSrv = std::make_shared<TcpServer>();
+
+            //rtmp[s]服务器
+            auto rtmpSrv = std::make_shared<TcpServer>();
+            auto rtmpsSrv = std::make_shared<TcpServer>();
+
+            //http[s]服务器
+            auto httpSrv = std::make_shared<TcpServer>();
+            auto httpsSrv = std::make_shared<TcpServer>();
 
 #if defined(ENABLE_RTPPROXY)
-        //GB28181 rtp推流端口，支持UDP/TCP
-        auto rtpServer = std::make_shared<RtpServer>();
+            //GB28181 rtp推流端口，支持UDP/TCP
+            auto rtpServer = std::make_shared<RtpServer>();
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
-        auto rtcSrv_tcp = std::make_shared<TcpServer>();
-        //webrtc udp服务器
-        auto rtcSrv_udp = std::make_shared<UdpServer>();
-        rtcSrv_udp->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
-            if (!buf) {
-                return Socket::createSocket(poller, false);
-            }
-            auto new_poller = WebRtcSession::queryPoller(buf);
-            if (!new_poller) {
-                //该数据对应的webrtc对象未找到，丢弃之
-                return Socket::Ptr();
-            }
-            return Socket::createSocket(new_poller, false);
-        });
-        uint16_t rtcPort = mINI::Instance()[Rtc::kPort];
-        uint16_t rtcTcpPort = mINI::Instance()[Rtc::kTcpPort];
+            auto rtcSrv_tcp = std::make_shared<TcpServer>();
+            //webrtc udp服务器
+            auto rtcSrv_udp = std::make_shared<UdpServer>();
+            rtcSrv_udp->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+                if (!buf) {
+                    return Socket::createSocket(poller, false);
+                }
+                auto new_poller = WebRtcSession::queryPoller(buf);
+                if (!new_poller) {
+                    //该数据对应的webrtc对象未找到，丢弃之
+                    return Socket::Ptr();
+                }
+                return Socket::createSocket(new_poller, false);
+            });
+            uint16_t rtcPort = mINI::Instance()[Rtc::kPort];
+            uint16_t rtcTcpPort = mINI::Instance()[Rtc::kTcpPort];
 #endif//defined(ENABLE_WEBRTC)
 
 
 #if defined(ENABLE_SRT)
-        auto srtSrv = std::make_shared<UdpServer>();
-        srtSrv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
-            if (!buf) {
-                return Socket::createSocket(poller, false);
-            }
-            auto new_poller = SRT::SrtSession::queryPoller(buf);
-            if (!new_poller) {
-                //握手第一阶段
-                return Socket::createSocket(poller, false);
-            }
-            return Socket::createSocket(new_poller, false);
-        });
+            auto srtSrv = std::make_shared<UdpServer>();
+            srtSrv->setOnCreateSocket([](const EventPoller::Ptr &poller, const Buffer::Ptr &buf, struct sockaddr *, int) {
+                if (!buf) {
+                    return Socket::createSocket(poller, false);
+                }
+                auto new_poller = SRT::SrtSession::queryPoller(buf);
+                if (!new_poller) {
+                    //握手第一阶段
+                    return Socket::createSocket(poller, false);
+                }
+                return Socket::createSocket(new_poller, false);
+            });
 
-        uint16_t srtPort = mINI::Instance()[SRT::kPort];
+            uint16_t srtPort = mINI::Instance()[SRT::kPort];
 #endif //defined(ENABLE_SRT)
 
-        installWebApi();
-        InfoL << "已启动http api 接口";
-        installWebHook();
-        InfoL << "已启动http hook 接口";
+            installWebApi();
+            InfoL << "已启动http api 接口";
+            installWebHook();
+            InfoL << "已启动http hook 接口";
 
-        try {
-            //rtsp服务器，端口默认554
-            if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
-            //rtsps服务器，端口默认322
-            if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort); }
+            try {
+                //rtsp服务器，端口默认554
+                if (rtspPort) { rtspSrv->start<RtspSession>(rtspPort); }
+                //rtsps服务器，端口默认322
+                if (rtspsPort) { rtspSSLSrv->start<RtspSessionWithSSL>(rtspsPort); }
 
-            //rtmp服务器，端口默认1935
-            if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort); }
-            //rtmps服务器，端口默认19350
-            if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort); }
+                //rtmp服务器，端口默认1935
+                if (rtmpPort) { rtmpSrv->start<RtmpSession>(rtmpPort); }
+                //rtmps服务器，端口默认19350
+                if (rtmpsPort) { rtmpsSrv->start<RtmpSessionWithSSL>(rtmpsPort); }
 
-            //http服务器，端口默认80
-            if (httpPort) { httpSrv->start<HttpSession>(httpPort); }
-            //https服务器，端口默认443
-            if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort); }
+                //http服务器，端口默认80
+                if (httpPort) { httpSrv->start<HttpSession>(httpPort); }
+                //https服务器，端口默认443
+                if (httpsPort) { httpsSrv->start<HttpsSession>(httpsPort); }
 
-            //telnet远程调试服务器
-            if (shellPort) { shellSrv->start<ShellSession>(shellPort); }
+                //telnet远程调试服务器
+                if (shellPort) { shellSrv->start<ShellSession>(shellPort); }
 
 #if defined(ENABLE_RTPPROXY)
-            //创建rtp服务器
-            if (rtpPort) { rtpServer->start(rtpPort); }
+                //创建rtp服务器
+                if (rtpPort) { rtpServer->start(rtpPort); }
 #endif//defined(ENABLE_RTPPROXY)
 
 #if defined(ENABLE_WEBRTC)
-            //webrtc udp服务器
-            if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort);}
+                //webrtc udp服务器
+                if (rtcPort) { rtcSrv_udp->start<WebRtcSession>(rtcPort);}
 
-            if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort);}
-             
+                if (rtcTcpPort) { rtcSrv_tcp->start<WebRtcSession>(rtcTcpPort);}
+
 #endif//defined(ENABLE_WEBRTC)
 
 #if defined(ENABLE_SRT)
-            // srt udp服务器
-            if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort); }
+                // srt udp服务器
+                if (srtPort) { srtSrv->start<SRT::SrtSession>(srtPort); }
 #endif//defined(ENABLE_SRT)
 
-        } catch (std::exception &ex) {
-            ErrorL << "Start server failed: " << ex.what();
-            sleep(1);
+            } catch (std::exception &ex) {
+                ErrorL << "Start server failed: " << ex.what();
+                sleep(1);
 #if !defined(_WIN32)
-            if (pid != getpid() && kill_parent_if_failed) {
-                //杀掉守护进程
-                kill(pid, SIGINT);
+                if (pid != getpid() && kill_parent_if_failed) {
+                    //杀掉守护进程
+                    kill(pid, SIGINT);
+                }
+#endif
+                return -1;
             }
-#endif
-            return -1;
-        }
 
-        //设置退出信号处理函数
-        static semaphore sem;
-        signal(SIGINT, [](int) {
-            InfoL << "SIGINT:exit";
-            signal(SIGINT, SIG_IGN); // 设置退出信号
-            sem.post();
-        }); // 设置退出信号
+            //设置退出信号处理函数
+            static semaphore sem;
+            signal(SIGINT, [](int) {
+                InfoL << "SIGINT:exit";
+                signal(SIGINT, SIG_IGN); // 设置退出信号
+                sem.post();
+            }); // 设置退出信号
 
-        signal(SIGTERM,[](int) {
-            WarnL << "SIGTERM:exit";
-            signal(SIGTERM, SIG_IGN);
-            sem.post();
-        });
+            signal(SIGTERM,[](int) {
+                WarnL << "SIGTERM:exit";
+                signal(SIGTERM, SIG_IGN);
+                sem.post();
+            });
 
 #if !defined(_WIN32)
-        signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
+            signal(SIGHUP, [](int) { mediakit::loadIniConfig(g_ini_file.data()); });
 #endif
-        sem.wait();
-    }
-    unInstallWebApi();
-    unInstallWebHook();
-    onProcessExited();
+            sem.wait();
+        }
+        unInstallWebApi();
+        unInstallWebHook();
+        onProcessExited();
 
-    //休眠1秒再退出，防止资源释放顺序错误
-    InfoL << "程序退出中,请等待...";
-    sleep(1);
-    InfoL << "程序退出完毕!";
-    return 0;
+        //休眠1秒再退出，防止资源释放顺序错误
+        InfoL << "程序退出中,请等待...";
+        sleep(1);
+        InfoL << "程序退出完毕!";
+        return 0;
+    }
 }
 
 #ifndef DISABLE_MAIN
