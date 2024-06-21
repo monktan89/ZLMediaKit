@@ -1507,13 +1507,6 @@ void installWebApi() {
         }
 
         src->getOwnerPoller()->async([=]() mutable {
-            // 如果在录制先停止
-            if (src->isRecording((Recorder::type)allArgs["type"].as<int>())) {
-                auto result = src->setupRecord((Recorder::type)allArgs["type"].as<int>(), false, allArgs["customized_path"], allArgs["max_second"].as<size_t>());
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                InfoL << "Begin a recording that has already started，stop record result: " << result;
-                InfoL << "stop record, stream_id: " << allArgs["stream"] << " , app: " << allArgs["app"];
-            }
             auto result = src->setupRecord((Recorder::type)allArgs["type"].as<int>(), true, allArgs["customized_path"], allArgs["max_second"].as<size_t>());
             val["result"] = result;
             val["code"] = result ? API::Success : API::OtherFailed;
