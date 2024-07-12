@@ -21,6 +21,8 @@ using namespace toolkit;
 
 namespace mediakit{
 
+const string RtpSession::kVhost = "vhost";
+const string RtpSession::kApp = "app";
 const string RtpSession::kStreamID = "stream_id";
 const string RtpSession::kSSRC = "ssrc";
 const string RtpSession::kOnlyTrack = "only_track";
@@ -31,7 +33,9 @@ void RtpSession::attachServer(const Server &server) {
 }
 
 void RtpSession::setParams(mINI &ini) {
-    _stream_id = ini[kStreamID];
+    _tuple.vhost = ini[kVhost];
+    _tuple.app = ini[kApp];
+    _tuple.stream = ini[kStreamID];
     _ssrc = ini[kSSRC];
     _only_track = ini[kOnlyTrack];
     int udp_socket_buffer = ini[kUdpRecvBuffer];
@@ -63,10 +67,10 @@ void RtpSession::onError(const SockException &err) {
     if (_emit_detach) {
         _process->onDetach(err);
     }
-    WarnP(this) << _stream_id << " " << err;
+    WarnP(this) << _tuple.shortUrl() << " " << err;
 
     // 断流事件上报，用于统计
-    if (!_stream_id.empty() && _stream_id != "00000000" && _stream_id != "B1000000" ){
+    if (!_tuple.stream.empty() && _tuple.stream != "00000000" && _tuple.stream != "B1000000" ){
         EventType type = None;
         std::string errMsg = err.what();
         if (errMsg.find("end of file") != std::string::npos ||
@@ -81,7 +85,7 @@ void RtpSession::onError(const SockException &err) {
             }
 
         std::string appName = "rtp";
-        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, appName, _stream_id, type, errMsg);
+        NoticeCenter::Instance().emitEvent(Broadcast::kBroadcastEventReport, appName, _tuple.stream, type, errMsg);
     }
 }
 
@@ -126,12 +130,12 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
     }
 
     // 未指定流id就使用ssrc为流id
-    if (_stream_id.empty()) {
-        _stream_id = printSSRC(_ssrc);
+    if (_tuple.stream.empty()) {
+        _tuple.stream = printSSRC(_ssrc);
     }
 
     if (!_process) {
-        _process = RtpProcess::createProcess(_stream_id);
+        _process = RtpProcess::createProcess(_tuple);
         _process->setOnlyTrack((RtpProcess::OnlyTrack)_only_track);
         weak_ptr<RtpSession>  weak_self = static_pointer_cast<RtpSession>(shared_from_this());
         _process->setOnDetach([weak_self](const SockException &ex) {
@@ -151,7 +155,7 @@ void RtpSession::onRtpPacket(const char *data, size_t len) {
         _process->inputRtp(false, getSock(), data, len, (struct sockaddr *)&_addr);
     } catch (RtpTrack::BadRtpException &ex) {
         if (!_is_udp) {
-            WarnL << "stream: " << _stream_id << ", " << ex.what() << "，开始搜索ssrc以便恢复上下文";
+            WarnL << "stream: " << _tuple.stream << ", " << ex.what() << "，开始搜索ssrc以便恢复上下文";
             _search_rtp = true;
         } else {
             throw;
@@ -233,7 +237,7 @@ const char *RtpSession::searchBySSRC(const char *data, size_t len) {
     // 两个ssrc的间隔正好等于rtp的长度(外加rtp长度字段)，那么说明找到rtp
     auto ssrc_offset = ssrc_ptr1 - ssrc_ptr0;
     if (ssrc_offset == rtp_len + 2 || ssrc_offset == rtp_len + 4) {
-        InfoL << "stream: " << _stream_id << ", "<< "rtp搜索ssrc成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
+        InfoL << "stream: " << _tuple.stream << ", "<< "rtp搜索ssrc成功，tcp上下文恢复成功，丢弃的rtp残余数据为：" << rtp_len_ptr - data;
         _search_rtp_finished = true;
         if (rtp_len_ptr == data) {
             // 停止搜索rtp，否则会进入死循环
