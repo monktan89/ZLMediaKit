@@ -1440,7 +1440,7 @@ void installWebApi() {
         args.close_delay_ms = allArgs["close_delay_ms"];
         // 记录发送流的app和vhost
         args.recv_stream_app = allArgs["app"];
-        args.recv_stream_app = allArgs["vhost"];
+        args.recv_stream_vhost = allArgs["vhost"];
         src->getOwnerPoller()->async([=]() mutable {
             try {
                 src->startSendRtp(args, [val, headerOut, invoker](uint16_t local_port, const SockException &ex) mutable {
@@ -1879,8 +1879,9 @@ void installWebApi() {
             auto &allArgs = _args;
             CHECK_ARGS("app", "stream");
 
-            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/"
-                              << _args["stream"] << "?" << _args.parser.params() + "&session=" + _session_id;
+            string auth = _args["Authorization"]; // Authorization  Bearer
+            return StrPrinter << "rtc://" << _args["Host"] << "/" << _args["app"] << "/" << _args["stream"] << "?"
+                              << _args.parser.params() + "&session=" + _session_id + (auth.empty() ? "" : ("&Authorization=" + auth));
         }
 
     private:
