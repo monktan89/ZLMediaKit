@@ -350,5 +350,9 @@ float RtpProcess::getLossRate(MediaSource &sender, TrackType type) {
     return getLostInterval() * 100 / expected;
 }
 
+const toolkit::Socket::Ptr& RtpProcess::getSock() const {
+    return _sock;
+}
+
 }//namespace mediakit
 #endif//defined(ENABLE_RTPPROXY)
